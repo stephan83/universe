@@ -9,18 +9,15 @@
   var universe = new Universe(ctx);
 
   // Create walls
-  for (i = -25; i <= 25; i++) {
-    universe.addWall(i, 25);
-    universe.addWall(i, -25);
-    universe.addWall(25, i);
-    universe.addWall(-25, i);
-  }
-  for (i = -10; i <= 10; i++) {
-    universe.addWall(i, 0);
+  for (i = -22; i <= 22; i++) {
+    universe.addWall(i, 22);
+    universe.addWall(i, -22);
+    universe.addWall(22, i);
+    universe.addWall(-22, i);
   }
 
   // Add random players
-  for (var i = 0; i < 20; i++) {
+  for (var i = 0; i < 50; i++) {
     universe.addPlayer(
       Math.floor(Math.random() * 40) - 20,
       Math.floor(Math.random() * 40) - 20,

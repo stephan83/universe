@@ -14,13 +14,13 @@
   var RESOURCE_WAVES_INITIAL_ENERGY = 50;
   var PLAYER_WAVES_INITIAL_ENERGY = 50;
   var MISSILES_INITIAL_ENERGY = 50;
-  var MISSILES_COST = 50;
+  var MISSILES_COST = 10;
 
   var INITIAL_ZOOM = 3;
   var INITIAL_VIEW_X = 0;
   var INITIAL_VIEW_Y = 0;
 
-  var MAIN_LOOP_TIMEOUT = 20;
+  var MAIN_LOOP_TIMEOUT = 50;
 
   // Used to colorize the walls
   function wallColorizer() {
