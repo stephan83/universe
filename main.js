@@ -29,6 +29,15 @@
     );
   }
 
+  // Add random resources
+  for (var i = 0; i < 20; i++) {
+    universe.addResource(
+      Math.floor(Math.random() * 40) - 20,
+      Math.floor(Math.random() * 40) - 20,
+      50 + Math.floor(Math.random() * 50)
+    );
+  }
+
   // Set up user interface and events
 
   var down, lastX, lastY;
