@@ -1,28 +1,21 @@
 !function() {
 
   var DIRECTIONS = [
-    [-1, 0],
-    [0, 1],
-    [1, -1],
-    [1, 1],
-    [1, 0],
-    [0, -1],
-    [-1, 1],
-    [-1, -1]
+    [-1, 0], [0, 1], [1, -1], [1, 1],
+    [1, 0], [0, -1], [-1, 1], [-1, -1]
   ];
 
   var STRAIGHT_DIRECTIONS = [
-    [-1, 0],
-    [0, 1],
-    [1, 0],
-    [0, -1]
+    [-1, 0], [0, 1],
+    [1, 0], [0, -1]
   ];
 
   var wallsFrame = new Frame();
   var wallWavesFrame = new Frame();
-  var playersFrame = new Frame();
-  var wavesFrame = new Frame();
-  var missilesFrame = new Frame();
+  var player = new Player(DIRECTIONS);
+  var wallsWave = new Wave('walls', STRAIGHT_DIRECTIONS, 50);
+  var playersWave = new Wave('players', DIRECTIONS, 50);
+  var missile = new Missile(DIRECTIONS, 5, 50);
 
   var zoom = 3;
   var viewX = 0;
@@ -36,27 +29,28 @@
   ctx.imageSmoothingEnabled = false;
 
   // Used to colorize the walls
-  function wallsColorizer(player) {
+  function wallColorizer(player) {
     return 'rgb(200,120,100)';
   }
 
   // Used to colorize the wall waves
-  function wallWavesColorizer(player) {
+  function wallWaveColorizer(player) {
     return 'rgb(50,40,30)';
   }
 
   // Used to colorize the player's squares
-  function playersColorizer(player) {
-    return 'rgb(255,255,255)';
+  function playerColorizer(player) {
+    var intensity = 55 + player.health * 2;
+    return 'rgb(' + intensity + ',' + intensity + ',' + intensity + ')';
   }
 
   // Used to colorize the waves squares
-  function wavesColorizer(wave) {
+  function playerWaveColorizer(wave) {
     return 'rgb(0,60,60)';
   }
 
   // Used to colorize the missiles squares
-  function missilesColorizer(missile) {
+  function missileColorizer(missile) {
     return 'rgb(255,200,0)';
   }
 
@@ -64,28 +58,20 @@
   function render() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    Renderer.render(ctx, wallWavesFrame, viewX, viewY, zoom, wallWavesColorizer);
-    Renderer.render(ctx, wavesFrame, viewX, viewY, zoom, wavesColorizer);
-    Renderer.render(ctx, playersFrame, viewX, viewY, zoom, playersColorizer);
-    Renderer.render(ctx, missilesFrame, viewX, viewY, zoom, missilesColorizer);
+    //Renderer.render(ctx, wallsWave.getFrame(), viewX, viewY, zoom, wallWaveColorizer);
+    //Renderer.render(ctx, playersWave.getFrame(), viewX, viewY, zoom, playerWaveColorizer);
+    Renderer.render(ctx, player.getFrame(), viewX, viewY, zoom, playerColorizer);
+    Renderer.render(ctx, missile.getFrame(), viewX, viewY, zoom, missileColorizer);
 
-    Renderer.render(ctx, wallsFrame, viewX, viewY, zoom, wallsColorizer);
+    Renderer.render(ctx, wallsFrame, viewX, viewY, zoom, wallColorizer);
   }
 
-  for (var i = 0; i < 10; i++) {
-    playersFrame.write(
+  for (var i = 0; i < 20; i++) {
+    player.add(
       Math.floor(Math.random() * 40) - 20,
       Math.floor(Math.random() * 40) - 20,
-      {
-        name: 'Player ' + (i + 1),
-        health: 100,
-        ammo: 10,
-        sensors: {
-          wallWaves: [0,0,0,0],
-          waves: [0,0,0,0,0,0,0,0],
-          missiles: [0,0,0,0,0,0,0,0]
-        }
-      }
+      'player-' + (i + 1),
+      brain
     );
   }
 
@@ -100,237 +86,64 @@
     wallsFrame.write(i, 0, true);
   }
 
-  function emitWallWave(x, y) {
-    var initialWallWaveEnergy = 50;
-    for (var i = 0; i < STRAIGHT_DIRECTIONS.length; i++) {
-      var direction = STRAIGHT_DIRECTIONS[i];
-      var startX = x + direction[0];
-      var startY = y + direction[1];
-
-      if (wallsFrame.read(startX, startY)) {
-        continue;
-      }
-
-      wallWavesFrame.write(startX, startY, {
-        direction: i,
-        energy: initialWallWaveEnergy
-      });
-    }
-  }
-
-  function emitWave(player, x, y) {
-    var initialWaveEnergy = 100;
-    for (var i = 0; i < DIRECTIONS.length; i++) {
-      var direction = DIRECTIONS[i];
-      var startX = x + direction[0];
-      var startY = y + direction[1];
-
-      if (wallsFrame.read(startX, startY)) {
-        continue;
-      }
-
-      wavesFrame.write(startX, startY, {
-        emitter: player.name,
-        direction: i,
-        energy: initialWaveEnergy
-      });
-    }
-  }
-
-  function movePlayer(player, x, y, dir) {
-    var direction = DIRECTIONS[dir];
-    var newX = x + direction[0];
-    var newY = y + direction[1];
-
-    if (wallsFrame.read(newX, newY)) {
-      return;
-    }
-
-    var existing = playersFrame.read(newY, newY);
-
-    if (!existing) {
-      playersFrame.remove(x, y);
-      playersFrame.write(newX, newY, player);
-      emitWave(player, newX, newY);
-    }
-  }
-
-  function fireMissile(player, x, y, dir) {
-    var initialMissilesEnergy = 100;
-
-    var direction = DIRECTIONS[dir];
-    var startX = x + direction[0];
-    var startY = y + direction[1];
-
-    if (wallsFrame.read(startX, startY)) {
-      return;
-    }
-
-    player.ammo -= 5;
-    playersFrame.write(x, y, player);
-
-    var existing = missilesFrame.read(startY, startY);
-
-    if (existing) {
-      missilesFrame.remove(startX, startY);
-    } else {
-      missilesFrame.write(startX, startY, {
-        direction: dir,
-        energy: initialMissilesEnergy
-      });
-      emitWave(player, startX, startY);
-    }
-  }
-
   // Main game loop
   var cycle = 0;
+
+  function brain(data) {
+    var highestSensorVal;
+    var highestSensorDir;
+    var lowestSensorVal;
+    var lowestSensorDir;
+
+    if (data.sensors.players) {
+      for (var i = 0; i < data.sensors.players.length; i++) {
+        if (data.sensors.players[i]) {
+          if (!highestSensorVal || data.sensors.players[i] > highestSensorVal) {
+            highestSensorVal = data.sensors.players[i];
+            highestSensorDir = i;
+          }
+          if (!lowestSensorVal || data.sensors.players[i] > lowestSensorVal) {
+            lowestSensorVal = data.sensors.players[i];
+            lowestSensorDir = i;
+          }
+        }
+      }
+    }
+
+    if (highestSensorVal) {
+      if (data.ammo > 0) {
+        return Player.fireCommand((highestSensorDir + 4) % 8);
+      } else {
+        return Player.moveCommand(lowestSensorDir);
+      }
+    } else if (Math.random() < 0.1) {
+      return Player.moveCommand(Math.floor(Math.random() * 8));
+    }
+  }
 
   function mainLoop() {
 
     if (cycle % 20 === 0) {
       wallsFrame.each(function(x, y, wall) {
-        emitWallWave(x, y);
+        wallsWave.emit(x, y, wallsFrame, player.getFrame());
       });
     }
 
     render();
 
     for (var i = 0; i < 3; i++) {
-      wallWavesFrame.each(function(x, y, wallWave) {
-        wallWavesFrame.remove(x, y);
-
-        wallWave.energy--;
-
-        if (wallWave.energy > 0) {
-          var direction = STRAIGHT_DIRECTIONS[wallWave.direction];
-          var newX = x + direction[0];
-          var newY = y + direction[1];
-
-          if (wallsFrame.read(newX, newY)) {
-            return;
-          }
-
-          var existing = wallWavesFrame.read(newX, newY);
-
-          if (existing && wallWave.energy === existing.energy) {
-            wallWavesFrame.remove(newX, newY);
-          } else if (!existing || wallWave.energy >= existing.energy) {
-            var player = playersFrame.read(newX, newY);
-
-            if (player && player.name != wallWave.emitter) {
-              player.sensors.wallWaves[wallWave.direction] += wallWave.energy;
-              playersFrame.write(newX, newY, player);
-            }
-
-            wallWavesFrame.write(newX, newY, wallWave);
-          }
-        }
-      });
+      wallsWave.loop(wallsFrame, player.getFrame());
     }
 
     for (i = 0; i < 3; i++) {
-      wavesFrame.each(function(x, y, wave) {
-        wavesFrame.remove(x, y);
-
-        wave.energy--;
-
-        if (wave.energy > 0) {
-          var direction = DIRECTIONS[wave.direction];
-          var newX = x + direction[0];
-          var newY = y + direction[1];
-
-          if (wallsFrame.read(newX, newY)) {
-            return;
-          }
-
-          var existing = wavesFrame.read(newX, newY);
-
-          if (!existing || wave.energy >= existing.energy) {
-            var player = playersFrame.read(newX, newY);
-
-            if (player && player.name != wave.emitter) {
-              player.sensors.waves[wave.direction] += wave.energy;
-              playersFrame.write(newX, newY, player);
-            } else {
-              wavesFrame.write(newX, newY, wave);
-            }
-          }
-        }
-      });
+      playersWave.loop(wallsFrame, player.getFrame());
     }
 
     for (i = 0; i < 2; i++) {
-      missilesFrame.each(function(x, y, missile) {
-        missilesFrame.remove(x, y);
-
-        missile.energy--;
-
-        if (missile.energy > 0) {
-          var direction = DIRECTIONS[missile.direction];
-          var newX = x + direction[0];
-          var newY = y + direction[1];
-
-          if (wallsFrame.read(newX, newY)) {
-            return;
-          }
-
-          var existing = missilesFrame.read(newX, newY);
-
-          if (!existing || missile.energy >= existing.energy) {
-            var player = playersFrame.read(newX, newY);
-
-            if (player) {
-              player.health -= missile.energy;
-
-              if (player.health < 0) {
-                playersFrame.remove(newX, newY);
-              } else {
-                player.sensors.missiles[missile.direction] += missile.energy;
-                playersFrame.write(newX, newY, player);
-              }
-            } else {
-              missilesFrame.write(newX, newY, missile);
-            }
-          }
-        }
-      });
+      missile.loop(wallsFrame, player.getFrame());
     }
     
-    playersFrame.each(function(x, y, player) {
-      var highestSensorVal;
-      var highestSensorDir;
-      var lowestSensorVal;
-      var lowestSensorDir;
-
-      for (var i = 0; i < player.sensors.waves.length; i++) {
-        if (!highestSensorVal || player.sensors.waves[i] > highestSensorVal) {
-          highestSensorVal = player.sensors.waves[i];
-          highestSensorDir = i;
-        }
-        if (!lowestSensorVal || player.sensors.waves[i] > lowestSensorVal) {
-          lowestSensorVal = player.sensors.waves[i];
-          lowestSensorDir = i;
-        }
-      }
-
-      player.sensors.wallWaves = [0,0,0,0];
-      player.sensors.waves = [0,0,0,0,0,0,0,0];
-      player.sensors.missiles = [0,0,0,0,0,0,0,0];
-      player.ammo = Math.min(10, player.ammo + 1);
-      playersFrame.write(x, y, player);
-
-      if (highestSensorVal) {
-        if (player.ammo > 0) {
-          var dir = (highestSensorDir + 4) % 8;
-          fireMissile(player, x, y, dir);
-        } else {
-          dir = (lowestSensorDir + 4) % 8;
-          movePlayer(player, x, y, dir);
-        }
-      } else if (Math.random() < 0.1) {
-        movePlayer(player, x, y, Math.floor(Math.random() * 8));
-      }
-    });
+    player.loop(wallsFrame, playersWave, missile);
 
     setTimeout(window.requestAnimationFrame.bind(window, mainLoop), 50);
     //window.requestAnimationFrame(mainLoop);
