@@ -1,17 +1,17 @@
 !function(exports) {
 
-  function Wave(name, directions, initialEnergy) {
+  function Waves(name, directions, initialEnergy) {
     this._name = name;
     this._directions = directions;
     this._initialEnergy = initialEnergy;
     this._frame = new Frame();
   }
 
-  Wave.prototype.getFrame = function() {
+  Waves.prototype.getFrame = function() {
     return this._frame;
   };
 
-  Wave.prototype.emit = function(x, y, wallsFrame) {
+  Waves.prototype.emit = function(x, y, wallsFrame) {
     for (var i = 0; i < this._directions.length; i++) {
       var direction = this._directions[i];
       var startX = x + direction[0];
@@ -32,7 +32,7 @@
     }
   };
 
-  Wave.prototype.loop = function(wallsFrame, playersFrame) {
+  Waves.prototype.loop = function(wallsFrame, playersFrame) {
     var previous = this._frame;
     this._frame = new Frame();
 
@@ -67,6 +67,6 @@
     }.bind(this));
   };
 
-  exports.Wave = Wave;
+  exports.Waves = Waves;
 
 }(window);

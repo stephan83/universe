@@ -1,21 +1,21 @@
 !function(exports) {
 
-  function Missile(directions, cost, initialEnergy) {
+  function Missiles(directions, cost, initialEnergy) {
     this._directions = directions;
     this._cost = cost;
     this._initialEnergy = initialEnergy;
     this._frame = new Frame();
   }
 
-  Missile.prototype.getFrame = function() {
+  Missiles.prototype.getFrame = function() {
     return this._frame;
   };
 
-  Missile.prototype.getCost = function() {
+  Missiles.prototype.getCost = function() {
     return this._cost;
   };
 
-  Missile.prototype.fire = function(player, x, y, dir, wallsFrame) {
+  Missiles.prototype.fire = function(player, x, y, dir, wallsFrame) {
     var direction = this._directions[dir];
     var startX = x + direction[0];
     var startY = y + direction[1];
@@ -34,7 +34,7 @@
     this._frame.write(startX, startY, missiles);
   };
 
-  Missile.prototype.loop = function(wallsFrame, playersFrame) {
+  Missiles.prototype.loop = function(wallsFrame, playersFrame) {
     var previous = this._frame;
     this._frame = new Frame();
 
@@ -75,6 +75,6 @@
     }.bind(this));
   };
 
-  exports.Missile = Missile;
+  exports.Missiles = Missiles;
 
 }(window);

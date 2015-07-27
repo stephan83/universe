@@ -1,23 +1,23 @@
 !function(exports) {
 
-  function Player(directions) {
+  function Players(directions) {
     this._directions = directions;
     this._frame = new Frame();
   }
 
-  Player.moveCommand = function(dir) {
+  Players.moveCommand = function(dir) {
     return {action: 'move', direction: dir};
   };
 
-  Player.fireCommand = function(dir) {
+  Players.fireCommand = function(dir) {
     return {action: 'fire', direction: dir};
   };
 
-  Player.prototype.getFrame = function() {
+  Players.prototype.getFrame = function() {
     return this._frame;
   };
 
-  Player.prototype.add = function(x, y, name, brain) {
+  Players.prototype.add = function(x, y, name, brain) {
     this._frame.write(x, y, {
       name: name,
       health: 100,
@@ -27,7 +27,7 @@
     });
   };
 
-  Player.prototype.move = function(x, y, dir, wallsFrame, playersWave) {
+  Players.prototype.move = function(x, y, dir, wallsFrame, playersWave) {
     var player = this._frame.read(x, y);
     var direction = this._directions[dir];
     var newX = x + direction[0];
@@ -46,14 +46,14 @@
     }
   };
 
-  Player.prototype.fire = function(x, y, dir, wallsFrame, missile, playersWave) {
+  Players.prototype.fire = function(x, y, dir, wallsFrame, missile, playersWave) {
     var player = this._frame.read(x, y);
     player.ammo -= missile.getCost();
     this._frame.write(x, y, player);
     missile.fire(player, x, y, dir, wallsFrame, this._frame);
   };
 
-  Player.prototype.loop = function(wallsFrame, playersWave, missile) {
+  Players.prototype.loop = function(wallsFrame, playersWave, missile) {
     this._frame.each(function(x, y, player) {
       var sensors = player.sensors;
       player.ammo = Math.min(10, player.ammo + 1);
@@ -79,6 +79,6 @@
     }.bind(this));
   };
 
-  exports.Player = Player;
+  exports.Players = Players;
 
 }(window);
