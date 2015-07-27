@@ -11,12 +11,20 @@
     [-1, -1]
   ];
 
+  var STRAIGHT_DIRECTIONS = [
+    [-1, 0],
+    [0, 1],
+    [1, 0],
+    [0, -1]
+  ];
+
   var wallsFrame = new Frame();
+  var wallWavesFrame = new Frame();
   var playersFrame = new Frame();
   var wavesFrame = new Frame();
   var missilesFrame = new Frame();
 
-  var zoom = 2;
+  var zoom = 3;
   var viewX = 0;
   var viewY = 0;
 
@@ -30,6 +38,11 @@
   // Used to colorize the walls
   function wallsColorizer(player) {
     return 'rgb(200,120,100)';
+  }
+
+  // Used to colorize the wall waves
+  function wallWavesColorizer(player) {
+    return 'rgb(50,40,30)';
   }
 
   // Used to colorize the player's squares
@@ -51,33 +64,58 @@
   function render() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    Renderer.render(ctx, wallsFrame, viewX, viewY, zoom, wallsColorizer);
+    Renderer.render(ctx, wallWavesFrame, viewX, viewY, zoom, wallWavesColorizer);
     Renderer.render(ctx, wavesFrame, viewX, viewY, zoom, wavesColorizer);
     Renderer.render(ctx, playersFrame, viewX, viewY, zoom, playersColorizer);
     Renderer.render(ctx, missilesFrame, viewX, viewY, zoom, missilesColorizer);
+
+    Renderer.render(ctx, wallsFrame, viewX, viewY, zoom, wallsColorizer);
   }
 
-  for (var i = 0; i < 200; i++) {
+  for (var i = 0; i < 10; i++) {
     playersFrame.write(
-      Math.floor(Math.random() * 180) - 90,
-      Math.floor(Math.random() * 180) - 90,
+      Math.floor(Math.random() * 40) - 20,
+      Math.floor(Math.random() * 40) - 20,
       {
         name: 'Player ' + (i + 1),
         health: 100,
         ammo: 10,
-        waveSensors: {
+        sensors: {
+          wallWaves: [0,0,0,0],
           waves: [0,0,0,0,0,0,0,0],
-          missileSensors: [0,0,0,0,0,0,0,0]
+          missiles: [0,0,0,0,0,0,0,0]
         }
       }
     );
   }
 
-  for (i = -100; i <= 100; i++) {
-    wallsFrame.write(i, 100, true);
-    wallsFrame.write(i, -100, true);
-    wallsFrame.write(100, i, true);
-    wallsFrame.write(-100, i, true);
+  for (i = -25; i <= 25; i++) {
+    wallsFrame.write(i, 25, true);
+    wallsFrame.write(i, -25, true);
+    wallsFrame.write(25, i, true);
+    wallsFrame.write(-25, i, true);
+  }
+
+  for (i = -10; i <= 10; i++) {
+    wallsFrame.write(i, 0, true);
+  }
+
+  function emitWallWave(x, y) {
+    var initialWallWaveEnergy = 50;
+    for (var i = 0; i < STRAIGHT_DIRECTIONS.length; i++) {
+      var direction = STRAIGHT_DIRECTIONS[i];
+      var startX = x + direction[0];
+      var startY = y + direction[1];
+
+      if (wallsFrame.read(startX, startY)) {
+        continue;
+      }
+
+      wallWavesFrame.write(startX, startY, {
+        direction: i,
+        energy: initialWallWaveEnergy
+      });
+    }
   }
 
   function emitWave(player, x, y) {
@@ -88,7 +126,7 @@
       var startY = y + direction[1];
 
       if (wallsFrame.read(startX, startY)) {
-        return;
+        continue;
       }
 
       wavesFrame.write(startX, startY, {
@@ -145,10 +183,52 @@
   }
 
   // Main game loop
+  var cycle = 0;
+
   function mainLoop() {
+
+    if (cycle % 20 === 0) {
+      wallsFrame.each(function(x, y, wall) {
+        emitWallWave(x, y);
+      });
+    }
+
     render();
 
     for (var i = 0; i < 3; i++) {
+      wallWavesFrame.each(function(x, y, wallWave) {
+        wallWavesFrame.remove(x, y);
+
+        wallWave.energy--;
+
+        if (wallWave.energy > 0) {
+          var direction = STRAIGHT_DIRECTIONS[wallWave.direction];
+          var newX = x + direction[0];
+          var newY = y + direction[1];
+
+          if (wallsFrame.read(newX, newY)) {
+            return;
+          }
+
+          var existing = wallWavesFrame.read(newX, newY);
+
+          if (existing && wallWave.energy === existing.energy) {
+            wallWavesFrame.remove(newX, newY);
+          } else if (!existing || wallWave.energy >= existing.energy) {
+            var player = playersFrame.read(newX, newY);
+
+            if (player && player.name != wallWave.emitter) {
+              player.sensors.wallWaves[wallWave.direction] += wallWave.energy;
+              playersFrame.write(newX, newY, player);
+            }
+
+            wallWavesFrame.write(newX, newY, wallWave);
+          }
+        }
+      });
+    }
+
+    for (i = 0; i < 3; i++) {
       wavesFrame.each(function(x, y, wave) {
         wavesFrame.remove(x, y);
 
@@ -163,13 +243,13 @@
             return;
           }
 
-          var existing = wavesFrame.read(newY, newY);
+          var existing = wavesFrame.read(newX, newY);
 
           if (!existing || wave.energy >= existing.energy) {
             var player = playersFrame.read(newX, newY);
 
             if (player && player.name != wave.emitter) {
-              player.waveSensors[wave.direction] += wave.energy;
+              player.sensors.waves[wave.direction] += wave.energy;
               playersFrame.write(newX, newY, player);
             } else {
               wavesFrame.write(newX, newY, wave);
@@ -194,7 +274,7 @@
             return;
           }
 
-          var existing = missilesFrame.read(newY, newY);
+          var existing = missilesFrame.read(newX, newY);
 
           if (!existing || missile.energy >= existing.energy) {
             var player = playersFrame.read(newX, newY);
@@ -205,7 +285,7 @@
               if (player.health < 0) {
                 playersFrame.remove(newX, newY);
               } else {
-                player.missileSensors[missile.direction] += missile.energy;
+                player.sensors.missiles[missile.direction] += missile.energy;
                 playersFrame.write(newX, newY, player);
               }
             } else {
@@ -222,19 +302,20 @@
       var lowestSensorVal;
       var lowestSensorDir;
 
-      for (var i = 0; i < player.waveSensors.length; i++) {
-        if (!highestSensorVal || player.waveSensors[i] > highestSensorVal) {
-          highestSensorVal = player.waveSensors[i];
+      for (var i = 0; i < player.sensors.waves.length; i++) {
+        if (!highestSensorVal || player.sensors.waves[i] > highestSensorVal) {
+          highestSensorVal = player.sensors.waves[i];
           highestSensorDir = i;
         }
-        if (!lowestSensorVal || player.waveSensors[i] > lowestSensorVal) {
-          lowestSensorVal = player.waveSensors[i];
+        if (!lowestSensorVal || player.sensors.waves[i] > lowestSensorVal) {
+          lowestSensorVal = player.sensors.waves[i];
           lowestSensorDir = i;
         }
       }
 
-      player.waveSensors = [0,0,0,0,0,0,0,0];
-      player.missileSensors = [0,0,0,0,0,0,0,0];
+      player.sensors.wallWaves = [0,0,0,0];
+      player.sensors.waves = [0,0,0,0,0,0,0,0];
+      player.sensors.missiles = [0,0,0,0,0,0,0,0];
       player.ammo = Math.min(10, player.ammo + 1);
       playersFrame.write(x, y, player);
 
@@ -253,6 +334,8 @@
 
     setTimeout(window.requestAnimationFrame.bind(window, mainLoop), 50);
     //window.requestAnimationFrame(mainLoop);
+
+    cycle++;
   }
 
   // Set up user interface and events
