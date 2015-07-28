@@ -13,14 +13,14 @@
   var WALL_WAVES_INITIAL_ENERGY = 50;
   var RESOURCE_WAVES_INITIAL_ENERGY = 50;
   var PLAYER_WAVES_INITIAL_ENERGY = 50;
-  var MISSILES_INITIAL_ENERGY = 50;
-  var MISSILES_COST = 10;
+  var MISSILES_INITIAL_ENERGY = 10;
+  var MISSILES_COST = 5;
 
   var INITIAL_ZOOM = 3;
   var INITIAL_VIEW_X = 0;
   var INITIAL_VIEW_Y = 0;
 
-  var MAIN_LOOP_TIMEOUT = 50;
+  var MAIN_LOOP_TIMEOUT = 0;
 
   // Used to colorize the walls
   function wallColorizer() {
@@ -45,7 +45,10 @@
   // Used to colorize the player's squares
   function playerColorizer(player) {
     var intensity = 55 + player.resource * 2;
-    return 'rgb(' + intensity + ',' + intensity + ',' + intensity + ')';
+    if (player.ai instanceof Brains.One) {
+      return 'rgb(' + intensity + ',0,' + intensity + ')';
+    }
+    return 'rgb(0,' + intensity + ',' + intensity + ')';
   }
 
   // Used to colorize the waves squares
@@ -57,7 +60,7 @@
   function missileColorizer(missiles) {
     var intensity = 55;
     for (var i = 0; i < missiles.length; i++) {
-      intensity += missiles[i].energy * 4;
+      intensity += missiles[i].energy * 50;
     }
     intensity = Math.min(255, intensity);
     return 'rgb(' + intensity + ',' + Math.round(intensity / 2) + ',0)';
@@ -93,6 +96,9 @@
     this._viewX = INITIAL_VIEW_X;
     this._viewY = INITIAL_VIEW_Y;
 
+    this._scores = {};
+    this._aiMap = {};
+
     this._cycle = 0;
   }
 
@@ -101,11 +107,11 @@
 
     // tmp
     if(lostEnergy > 50) {
-      this.addResource(
-        Math.floor(Math.random() * 40) - 20,
-        Math.floor(Math.random() * 40) - 20,
-        lostEnergy
-      );
+      do {
+        var x = Math.floor(Math.random() * 40) - 20;
+        var y = Math.floor(Math.random() * 40) - 20;
+      } while(!this._resources.getFrame(x, y))
+      this.addResource(x, y, lostEnergy);
       this._players.resetLostEnergy();
     }
 
@@ -128,13 +134,14 @@
     }
 
     for (i = 0; i < 2; i++) {
-      this._missiles.loop(this._walls.getFrame(), this._players);
+      this._missiles.loop(this._walls.getFrame(), this._players, this._scores);
     }
     
     this._players.loop(
       this._walls.getFrame(),
       this._playerWaves,
-      this._missiles
+      this._missiles,
+      this._scores
     );
 
     this._cycle++;
@@ -146,12 +153,14 @@
     this.render();
     this._logic();
 
-    setTimeout(
-      window.requestAnimationFrame.bind(window, this._mainLoop.bind(this))
-      , MAIN_LOOP_TIMEOUT
-    );
-
-    //window.requestAnimationFrame(this._mainLoop.bind(this));
+    if (MAIN_LOOP_TIMEOUT) {
+      setTimeout(
+        window.requestAnimationFrame.bind(window, this._mainLoop.bind(this))
+        , MAIN_LOOP_TIMEOUT
+      );
+    } else {
+      window.requestAnimationFrame(this._mainLoop.bind(this));
+    }
   };
 
   Universe.prototype.getZoom = function() {
@@ -180,6 +189,14 @@
 
   Universe.prototype.getCycle = function() {
     return this._cycle;
+  };
+
+  Universe.prototype.getScores = function() {
+    return this._scores;
+  };
+
+  Universe.prototype.getAi = function(id) {
+    return this._aiMap[id];
   };
 
   Universe.prototype.getTotalPlayers = function() {
@@ -236,7 +253,11 @@
   };
 
   Universe.prototype.addPlayer = function(x, y, name, ai) {
-    this._players.add(x, y, name, ai);
+    this._aiMap[this._players.add(x, y, name, ai)] = ai;
+
+    if (this._cycle) {
+      this._players.incrLostEnergy(-100);
+    }
   };
 
   Universe.moveCommand = Players.moveCommand;

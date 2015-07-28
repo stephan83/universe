@@ -4,6 +4,7 @@
     this._directions = directions;
     this._frame = new Frame();
     this._lostEnergy = 0;
+    this._idCount = 0;
   }
 
   Players.moveCommand = function(dir) {
@@ -31,13 +32,19 @@
   };
 
   Players.prototype.add = function(x, y, name, ai) {
+    var id = this._idCount++;
+
     this._frame.write(x, y, {
       name: name,
       resource: 100,
       ammo: 10,
       sensors: {},
-      ai: ai
+      ai: ai,
+      age: 0,
+      id: id
     });
+
+    return id;
   };
 
   Players.prototype.move = function(x, y, dir, wallsFrame, playersWave) {
@@ -61,12 +68,17 @@
 
   Players.prototype.fire = function(x, y, dir, wallsFrame, missile, playersWave) {
     var player = this._frame.read(x, y);
+
+    if (player.ammo < missile.getCost()) {
+      return;
+    }
+
     player.ammo -= missile.getCost();
     this._frame.write(x, y, player);
     missile.fire(player, x, y, dir, wallsFrame, this._frame);
   };
 
-  Players.prototype.loop = function(wallsFrame, playersWave, missile) {
+  Players.prototype.loop = function(wallsFrame, playersWave, missile, scores) {
     this._frame.each(function(x, y, player) {
       player.resource--;
       this._lostEnergy++;
@@ -76,27 +88,19 @@
         return;
       }
 
-      if (player.resource > 200) {
-        player.resource -= 100;
-        // TMP
-        this.add(
-          Math.floor(Math.random() * 40) - 20,
-          Math.floor(Math.random() * 40) - 20,
-          player.name + '-clone',
-          player.ai.clone()
-        );
-      }
+      scores[player.id] = scores[player.id] || 0;
+      scores[player.id]++;
 
       var sensors = player.sensors;
+      player.age++;
       player.ammo = Math.min(10, player.ammo + 1);
       player.sensors = {};
       this._frame.write(x, y, player);
+
+      sensors.resource = player.resource;
+      sensors.ammo = player.ammo;
       
-      var command = player.ai.loop({
-        resource: player.resource,
-        ammo: player.ammo,
-        sensors: sensors
-      });
+      var command = player.ai.loop(sensors);
 
       if (command) {
         switch (command.action) {

@@ -9,8 +9,8 @@
 
   };
 
-  Less.prototype.loop = function(player) {
-    var playerSensors = player.sensors.players || [];
+  Less.prototype.loop = function(sensors) {
+    var playerSensors = sensors.players || [];
 
     var order = [0, 1, 2, 3, 4, 5, 6, 7];
     shuffle(order);
@@ -33,7 +33,7 @@
       }
     }
 
-    var resourceSensors = player.sensors.resources || [];
+    var resourceSensors = sensors.resources || [];
 
     var highestResourceSensorVal = -Infinity;
     var highestResourceSensorDir;
@@ -53,9 +53,9 @@
       }
     }
 
-    var critical = player.resource <= 60;
+    var critical = sensors.resource <= 60;
 
-    if (highestPlayerSensorVal > 0 && player.ammo >= 10 && !critical) {
+    if (highestPlayerSensorVal > 0 && sensors.ammo >= 10 && !critical) {
       if (highestPlayerSensorVal > 30) {
         return Universe.fireCommand((highestPlayerSensorDir + 4) % 8);
       }
@@ -64,9 +64,9 @@
       return Universe.moveCommand((highestResourceSensorDir + 4) % 8);
     } else if (critical && highestPlayerSensorVal > 0) {
       return Universe.moveCommand((lowestPlayerSensorDir + 4) % 8);
-    } else if (highestResourceSensorVal > 0 && player.resource < 100) {
+    } else if (highestResourceSensorVal > 0) {
       return Universe.moveCommand((highestResourceSensorDir + 4) % 8);
-    } else if (highestPlayerSensorVal > 0 && player.resource > 80) {
+    } else if (highestPlayerSensorVal > 0 && sensors.resource > 80) {
       return Universe.moveCommand((highestPlayerSensorVal + 4) % 8);
     } else if (Math.random() < 0.2) {
       return Universe.moveCommand(Math.floor(Math.random() * 8));
