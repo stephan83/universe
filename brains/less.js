@@ -5,7 +5,11 @@
     return o;
   }
 
-  exports.Less = function(player) {
+  function Less() {
+
+  };
+
+  Less.prototype.loop = function(player) {
     var playerSensors = player.sensors.players || [];
 
     var order = [0, 1, 2, 3, 4, 5, 6, 7];
@@ -49,24 +53,30 @@
       }
     }
 
-    var movePoints;
-    var firePoints;
-
-    var critical = player.health <= 40;
+    var critical = player.resource <= 60;
 
     if (highestPlayerSensorVal > 0 && player.ammo >= 10 && !critical) {
-      return Universe.fireCommand((highestPlayerSensorDir + 4) % 8);
+      if (highestPlayerSensorVal > 30) {
+        return Universe.fireCommand((highestPlayerSensorDir + 4) % 8);
+      }
+      return Universe.moveCommand((highestPlayerSensorDir + 4) % 8);
     } else if (highestResourceSensorVal > 0 && critical) {
       return Universe.moveCommand((highestResourceSensorDir + 4) % 8);
     } else if (critical && highestPlayerSensorVal > 0) {
       return Universe.moveCommand((lowestPlayerSensorDir + 4) % 8);
-    } else if (highestResourceSensorVal > 0 && player.health < 100) {
+    } else if (highestResourceSensorVal > 0 && player.resource < 100) {
       return Universe.moveCommand((highestResourceSensorDir + 4) % 8);
-    } else if (highestPlayerSensorVal > 0 && player.health > 80) {
+    } else if (highestPlayerSensorVal > 0 && player.resource > 80) {
       return Universe.moveCommand((highestPlayerSensorVal + 4) % 8);
     } else if (Math.random() < 0.2) {
       return Universe.moveCommand(Math.floor(Math.random() * 8));
     }
   };
+
+  Less.prototype.clone = function() {
+    return new Less();
+  };
+
+  exports.Less = Less;
 
 }(window.Brains || (window.Brains = {}));

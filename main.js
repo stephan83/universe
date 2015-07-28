@@ -17,17 +17,17 @@
   }
 
   // Add random players
-  for (var i = 0; i < 50; i++) {
+  for (var i = 0; i < 100; i++) {
     universe.addPlayer(
       Math.floor(Math.random() * 40) - 20,
       Math.floor(Math.random() * 40) - 20,
       'player-' + (i + 1),
-      Brains.Less
+      new Brains.Less()
     );
   }
 
   // Add random resources
-  for (var i = 0; i < 20; i++) {
+  for (var i = 0; i < 50; i++) {
     universe.addResource(
       Math.floor(Math.random() * 40) - 20,
       Math.floor(Math.random() * 40) - 20,
@@ -88,6 +88,12 @@
     universe.setViewY(universe.getViewY() * cellSizeRatio);
     universe.render();
   });
+
+  var stats = document.getElementById('stats');
+
+  universe.onLogic = function() {
+    stats.textContent = universe.getCycle() + '; ' + universe.getTotalPlayers();
+  };
 
   // Boot
 

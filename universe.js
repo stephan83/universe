@@ -44,7 +44,7 @@
 
   // Used to colorize the player's squares
   function playerColorizer(player) {
-    var intensity = 55 + player.health * 2;
+    var intensity = 55 + player.resource * 2;
     return 'rgb(' + intensity + ',' + intensity + ',' + intensity + ')';
   }
 
@@ -92,9 +92,23 @@
     this._zoom = INITIAL_ZOOM;
     this._viewX = INITIAL_VIEW_X;
     this._viewY = INITIAL_VIEW_Y;
+
+    this._cycle = 0;
   }
 
   Universe.prototype._logic = function() {
+    var lostEnergy = this._players.getLostEnergy();
+
+    // tmp
+    if(lostEnergy > 50) {
+      this.addResource(
+        Math.floor(Math.random() * 40) - 20,
+        Math.floor(Math.random() * 40) - 20,
+        lostEnergy
+      );
+      this._players.resetLostEnergy();
+    }
+
     this._walls.loop(this._wallWaves);
     this._resources.loop(this._resourceWaves, this._players.getFrame());
 
@@ -114,7 +128,7 @@
     }
 
     for (i = 0; i < 2; i++) {
-      this._missiles.loop(this._walls.getFrame(), this._players.getFrame());
+      this._missiles.loop(this._walls.getFrame(), this._players);
     }
     
     this._players.loop(
@@ -122,6 +136,10 @@
       this._playerWaves,
       this._missiles
     );
+
+    this._cycle++;
+
+    this.onLogic && this.onLogic();
   };
 
   Universe.prototype._mainLoop = function() {
@@ -158,6 +176,14 @@
 
   Universe.prototype.setViewY = function(value) {
     this._viewY = value;
+  };
+
+  Universe.prototype.getCycle = function() {
+    return this._cycle;
+  };
+
+  Universe.prototype.getTotalPlayers = function() {
+    return this._players.getFrame().getTotal();
   };
 
   Universe.prototype.start = function() {
@@ -209,8 +235,8 @@
     this._resources.add(x, y, amount);
   };
 
-  Universe.prototype.addPlayer = function(x, y, name, brain) {
-    this._players.add(x, y, name, brain);
+  Universe.prototype.addPlayer = function(x, y, name, ai) {
+    this._players.add(x, y, name, ai);
   };
 
   Universe.moveCommand = Players.moveCommand;

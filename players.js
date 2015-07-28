@@ -3,6 +3,7 @@
   function Players(directions) {
     this._directions = directions;
     this._frame = new Frame();
+    this._lostEnergy = 0;
   }
 
   Players.moveCommand = function(dir) {
@@ -17,13 +18,25 @@
     return this._frame;
   };
 
-  Players.prototype.add = function(x, y, name, brain) {
+  Players.prototype.getLostEnergy = function() {
+    return this._lostEnergy;
+  };
+
+  Players.prototype.incrLostEnergy = function(value) {
+    this._lostEnergy += value;
+  };
+
+  Players.prototype.resetLostEnergy = function() {
+    this._lostEnergy = 0;
+  };
+
+  Players.prototype.add = function(x, y, name, ai) {
     this._frame.write(x, y, {
       name: name,
-      health: 100,
+      resource: 100,
       ammo: 10,
       sensors: {},
-      brain: brain
+      ai: ai
     });
   };
 
@@ -55,13 +68,32 @@
 
   Players.prototype.loop = function(wallsFrame, playersWave, missile) {
     this._frame.each(function(x, y, player) {
+      player.resource--;
+      this._lostEnergy++;
+
+      if (player.resource < 1) {
+        this._frame.remove(x, y);
+        return;
+      }
+
+      if (player.resource > 200) {
+        player.resource -= 100;
+        // TMP
+        this.add(
+          Math.floor(Math.random() * 40) - 20,
+          Math.floor(Math.random() * 40) - 20,
+          player.name + '-clone',
+          player.ai.clone()
+        );
+      }
+
       var sensors = player.sensors;
       player.ammo = Math.min(10, player.ammo + 1);
       player.sensors = {};
       this._frame.write(x, y, player);
       
-      var command = player.brain({
-        health: player.health,
+      var command = player.ai.loop({
+        resource: player.resource,
         ammo: player.ammo,
         sensors: sensors
       });

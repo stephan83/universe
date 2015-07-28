@@ -34,7 +34,7 @@
     this._frame.write(startX, startY, missiles);
   };
 
-  Missiles.prototype.loop = function(wallsFrame, playersFrame) {
+  Missiles.prototype.loop = function(wallsFrame, players) {
     var previous = this._frame;
     this._frame = new Frame();
 
@@ -51,19 +51,20 @@
             return;
           }
 
-          var player = playersFrame.read(destX, destY);
+          var player = players.getFrame().read(destX, destY);
 
           if (player) {
-            player.health -= missile.energy;
+            players.incrLostEnergy(Math.min(missile.energy, player.resource));
+            player.resource -= missile.energy;
 
-            if (player.health < 1) {
-              playersFrame.remove(destX, destY);
+            if (player.resource < 1) {
+              players.getFrame().remove(destX, destY);
             } else {
               player.sensors.missiles = player.sensors.missiles || [];
               var sensor = player.sensors.missiles;
               sensor[missiles.direction] = sensor[missiles.direction] || 0;
               sensor[missiles.direction] += missile.energy;
-              playersFrame.write(destX, destY, player);
+              players.getFrame().write(destX, destY, player);
             }   
           } else {
             var dest = this._frame.read(destX, destY) || [];

@@ -19,7 +19,7 @@
       var player = playersFrame.read(x, y);
 
       if (player) {
-        player.health = Math.min(100, player.health + amount);
+        player.resource += amount;
         playersFrame.write(x, y, player);  
         this._frame.remove(x, y);
       }
