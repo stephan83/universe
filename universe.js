@@ -20,6 +20,7 @@
   var INITIAL_VIEW_X = 0;
   var INITIAL_VIEW_Y = 0;
 
+  var MAX_FRAME_RATE = 30;
   var MAIN_LOOP_TIMEOUT = 0;
 
   // Used to colorize the walls
@@ -69,7 +70,7 @@
   function Universe(ctx) {
     this._ctx = ctx;
 
-    this._walls = new Walls(20);
+    this._walls = new Walls(1);
     this._resources = new Resources(1);
     this._players = new Players(DIRECTIONS);
     this._wallWaves = new Waves(
@@ -100,6 +101,7 @@
     this._aiMap = {};
 
     this._cycle = 0;
+    this._lastRenderTime = 0;
   }
 
   Universe.prototype._logic = function() {
@@ -115,13 +117,12 @@
       this._players.resetLostEnergy();
     }
 
-    this._walls.loop(this._wallWaves);
-
-    /*for (var i = 0; i < 3; i++) {
+    /*for (var i = 0; i < 1; i++) {
+      this._walls.loop(this._wallWaves);
       this._wallWaves.loop(this._walls.getFrame(), this._players.getFrame());
     }*/
 
-    for (i = 0; i < 3; i++) {
+    for (i = 0; i < 1; i++) {
       this._resources.loop(this._resourceWaves, this._players.getFrame());
       this._resourceWaves.loop(
         this._walls.getFrame(),
@@ -129,9 +130,9 @@
       );
     }
 
-    /*for (i = 0; i < 3; i++) {
+    for (i = 0; i < 1; i++) {
       this._playerWaves.loop(this._walls.getFrame(), this._players.getFrame());
-    }*/
+    }
 
     for (i = 0; i < 2; i++) {
       this._missiles.loop(this._walls.getFrame(), this._players, this._scores);
@@ -150,7 +151,13 @@
   };
 
   Universe.prototype._mainLoop = function() {
-    this.render();
+    var now = Date.now();
+
+    if (now > this._lastRenderTime + 1000 / MAX_FRAME_RATE) {
+      this._lastRenderTime = now;
+      this.render();
+    }
+
     this._logic();
 
     if (MAIN_LOOP_TIMEOUT) {

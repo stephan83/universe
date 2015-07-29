@@ -35,7 +35,7 @@
     this._frame.write(startX, startY, missiles);
   };
 
-  Missiles.prototype.loop = function(wallsFrame, players, scores) {
+  Missiles.prototype.loop = function(wallsFrame, players, scores, cycle) {
     var previous = this._frame;
     this._frame = new Frame();
 

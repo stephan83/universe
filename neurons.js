@@ -12,21 +12,10 @@
       return 1 / (1 + Math.exp(-sum));
     },
 
-    softmax: function(bias, weights, inputs) {
-      var sum = bias;
-
-      for (var i = 0; i < inputs.length; i++) {
-        sum += weights[i] * inputs[i];
-      }
-
-      return Math.exp();
-    },
-
     network(process, layers, inputs) {
       var outputs = inputs.slice();
 
       for (var i = 0; i < layers.length; i++) {
-
         outputs = layers[i].map(function(layer) {
           return process(layer.bias, layer.weights, outputs);
         });

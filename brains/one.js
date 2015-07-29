@@ -24,6 +24,7 @@
   }
 
   function One(layers) {
+    this._feedback = [0, 0, 0, 0]
 
     if (layers) {
       this._layers = layers.map(function(layer) {
@@ -39,11 +40,17 @@
       return;
     }
 
-    this._layers = [randomLayer(8, 9)];
+    this._layers = [
+      randomLayer(22, 21)
+    ];
   };
 
   One.prototype.loop = function(sensors) {
-    var inputs = [0, 0, 0, 0, 0, 0, 0, 0];
+    var inputs = [
+      0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0
+    ].concat(this._feedback);
 
     if (sensors.resources) {
       for (var i = 0; i < 8; i++) {
@@ -51,12 +58,21 @@
       }
     }
 
+    if (sensors.players) {
+      for (var i = 0; i < 8; i++) {
+        inputs[8 + i] = Math.min(1, (sensors.players[i] || 0) / 20);
+      }
+    }
+
+    inputs[16] = Math.min(1, sensors.resource / 200);
+    inputs[17] = Math.min(1, sensors.ammo / 10);
+
     var outputs = Neurons.sigmoidNetwork(this._layers, inputs);
 
     var maxValue = 0;
     var maxIndex;
 
-    for (var i = 0; i < 9; i++) {
+    for (var i = 0; i < 17; i++) {
       var value = outputs[i];
 
       if (value > maxValue) {
@@ -65,8 +81,14 @@
       }
     }
 
+    this._feedback = outputs.slice(17, 21);
+
     if (maxIndex < 8) {
       return Universe.moveCommand(maxIndex);
+    }
+
+    if (maxIndex < 16) {
+      return Universe.fireCommand(maxIndex - 8);
     }
   };
 
