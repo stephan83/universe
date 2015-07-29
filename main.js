@@ -56,21 +56,19 @@
       };
       alive.push(data);
       for (var i = 0; i < best.length; i++) {
-        if (best[i].id === player.id) {
+        if (player.id === best[i].id) {
           best.splice(i, 1);
           break;
         }
       }
-      if (best.length < NUM_BEST) {
-        best.push(data);
-      } else {
-        for (var i = 0; i < best.length; i++) {
-          if (score >= player.id) {
-            best.splice(i, 0, data);
-            best.pop();
-            break;
-          }
+      for (var i = 0; i < best.length; i++) {
+        if (score >= best[i].score) {
+          break;
         }
+      }
+      best.splice(i, 0, data);
+      if (best.length > NUM_BEST) {
+        best.pop();
       }
     });
 
