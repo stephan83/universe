@@ -220,14 +220,6 @@
     );
     Renderer.render(
       this._ctx,
-      this._resourceWaves.getFrame(),
-      this._viewX,
-      this._viewY,
-      this._zoom,
-      resourceWaveColorizer
-    );
-    Renderer.render(
-      this._ctx,
       this._resources.getFrame(),
       this._viewX,
       this._viewY,

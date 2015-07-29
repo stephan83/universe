@@ -57,7 +57,7 @@
       alive.push(data);
       for (var i = 0; i < best.length; i++) {
         if (best[i].id === player.id) {
-          best.slice(i, 1);
+          best.splice(i, 1);
           break;
         }
       }
@@ -80,6 +80,14 @@
       });
 
       var html = '<div>C: ' + universe.getCycle() + '</div>';
+
+      html += '<div>-------------------------------</div>';
+
+      for (var i = 0; i < best.length; i++) {
+        html += '<div>S: ' + best[i].score + '; ID: ' + best[i].id + '</div>';
+      }
+
+      html += '<div>-------------------------------</div>';
 
       html += '<div>T: ' + totalScore + '</div>';
 
