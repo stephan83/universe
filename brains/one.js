@@ -4,11 +4,11 @@
     var weights = [];
 
     for (var i = 0; i < n; i++) {
-      weights.push(-1 + Math.random() * 2);
+      weights.push((Math.random() < 0.5 ? 1 : 0) * (Math.random() < 0.5 ? -1 : 1));
     }
 
     return {
-      bias: Math.random(),
+      bias: (Math.random() < 0.5 ? 1 : 0) * (Math.random() < 0.5 ? -1 : 1),
       weights: weights
     }
   }
@@ -23,74 +23,31 @@
     return layer;
   }
 
-  function One(parent) {
-    this._prevOutputs = [
-      0.5, 0.5, 0.5, 0.5,
-      0.5, 0.5, 0.5, 0.5,
-      0.5, 0.5, 0.5, 0.5,
-      0.5, 0.5, 0.5, 0.5,
-      0.5
-    ];
+  function One(layers) {
 
-    if (!parent) {
-      this._layers = [
-        //randomLayer(39, 39),
-        //randomLayer(39, 39),
-        //randomLayer(39, 39),
-        //randomLayer(39, 39),
-        //randomLayer(39, 39),
-        randomLayer(39, 17),
-        //randomLayer(17, 17)
-      ];
+    if (layers) {
+      this._layers = layers.map(function(layer) {
+        return layer.map(function(neuron) {
+          return {
+            bias: neuron.bias + (Math.random() < 0.2 ? 1 : 0) * (Math.random() < 0.5 ? -1 : 1),
+            weights: neuron.weights.map(function(weight) {
+              return weight + (Math.random() < 0.2 ? 1 : 0) * (Math.random() < 0.5 ? -1 : 1);
+            })
+          };
+        });
+      });
       return;
     }
 
-    this._layers = [];
-
-    for (var i = 0; i < parent._layers.length; i++) {
-      var layer = parent._layers[i];
-      this._layers[i] = [];
-      for (var j = 0; j < layer.length; j++) {
-        var neuron = layer[j];
-        this._layers[i][j] = {
-          bias: (neuron.bias + (-0.1 + Math.random() * 0.2)) * (Math.random() < 0.1 ? - 1 : 1),
-          weights: neuron.weights.map(function(w) {
-            return (w + (-0.1 + Math.random() * 0.2)) * (Math.random() < 0.1 ? - 1 : 1)
-          })
-        }
-      }
-    }
-
+    this._layers = [randomLayer(8, 9)];
   };
 
   One.prototype.loop = function(sensors) {
-
-    var inputs = this._prevOutputs.concat([
-      0, 0, 0, 0,
-      0, 0, 0, 0,
-      0, 0, 0, 0,
-      0, 0, 0, 0,
-      0, 0, 0, 0,
-      0, 0]);
-
-    inputs[17] = sensors.resource / 100;
-    inputs[18] = sensors.ammo / 10;
-
-    if (sensors.players) {
-      for (var i = 0; i < sensors.players.length; i++) {
-        inputs[19 + i] = Math.max(1, (sensors.players[i] || 0) / 10);
-      }
-    }
+    var inputs = [0, 0, 0, 0, 0, 0, 0, 0];
 
     if (sensors.resources) {
-      for (i = 0; i < sensors.resources.length; i++) {
-        inputs[27 + i] = Math.max(1, (sensors.resources[i] || 0) / 10);
-      }
-    }
-
-    if (sensors.walls) {
-      for (i = 0; i < sensors.walls.length; i++) {
-        inputs[35 + i] = Math.max(1, (sensors.walls[i] || 0) / 10);
+      for (var i = 0; i < 8; i++) {
+        inputs[i] = Math.min(1, (sensors.resources[i] || 0) / 20);
       }
     }
 
@@ -99,7 +56,7 @@
     var maxValue = 0;
     var maxIndex;
 
-    for (var i = 0; i < outputs.length; i++) {
+    for (var i = 0; i < 9; i++) {
       var value = outputs[i];
 
       if (value > maxValue) {
@@ -108,19 +65,13 @@
       }
     }
 
-    this._prevOutputs = outputs;
-
     if (maxIndex < 8) {
-      return Universe.fireCommand(maxIndex);
-    }
-
-    if (maxIndex < 16) {
-      return Universe.moveCommand(maxIndex - 8);
+      return Universe.moveCommand(maxIndex);
     }
   };
 
   One.prototype.clone = function() {
-    return new One(this);
+    return new One(this._layers);
   };
 
   exports.One = One;

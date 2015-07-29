@@ -14,21 +14,21 @@
   Waves.prototype.emit = function(x, y, wallsFrame) {
     for (var i = 0; i < this._directions.length; i++) {
       var direction = this._directions[i];
-      var startX = x + direction[0];
-      var startY = y + direction[1];
+      var nextX = x + direction[0];
+      var nextY = y + direction[1];
 
-      if (wallsFrame.read(startX, startY)) {
+      if (wallsFrame.read(nextX, nextY)) {
         continue;
       }
 
-      var waves = this._frame.read(startX, startY) || [];
+      var waves = this._frame.read(x, y) || [];
 
       waves.push({
         direction: i,
         energy: this._initialEnergy
       });
 
-      this._frame.write(startX, startY, waves);
+      this._frame.write(x, y, waves);
     }
   };
 

@@ -82,14 +82,13 @@
     this._frame.each(function(x, y, player) {
       player.resource--;
       this._lostEnergy++;
+      scores[player.id] = scores[player.id] || 0;
+      scores[player.id]++;
 
       if (player.resource < 1) {
         this._frame.remove(x, y);
         return;
       }
-
-      scores[player.id] = scores[player.id] || 0;
-      scores[player.id]++;
 
       var sensors = player.sensors;
       player.age++;

@@ -10,10 +10,10 @@
     [1, 0], [0, -1]
   ];
 
-  var WALL_WAVES_INITIAL_ENERGY = 50;
-  var RESOURCE_WAVES_INITIAL_ENERGY = 50;
-  var PLAYER_WAVES_INITIAL_ENERGY = 50;
-  var MISSILES_INITIAL_ENERGY = 10;
+  var WALL_WAVES_INITIAL_ENERGY = 20;
+  var RESOURCE_WAVES_INITIAL_ENERGY = 20;
+  var PLAYER_WAVES_INITIAL_ENERGY = 20;
+  var MISSILES_INITIAL_ENERGY = 20;
   var MISSILES_COST = 5;
 
   var INITIAL_ZOOM = 3;
@@ -70,7 +70,7 @@
     this._ctx = ctx;
 
     this._walls = new Walls(20);
-    this._resources = new Resources(3);
+    this._resources = new Resources(1);
     this._players = new Players(DIRECTIONS);
     this._wallWaves = new Waves(
       'walls',
@@ -110,28 +110,28 @@
       do {
         var x = Math.floor(Math.random() * 40) - 20;
         var y = Math.floor(Math.random() * 40) - 20;
-      } while(!this._resources.getFrame(x, y))
+      } while(this._resources.getFrame().read(x, y))
       this.addResource(x, y, lostEnergy);
       this._players.resetLostEnergy();
     }
 
     this._walls.loop(this._wallWaves);
-    this._resources.loop(this._resourceWaves, this._players.getFrame());
 
-    for (var i = 0; i < 3; i++) {
+    /*for (var i = 0; i < 3; i++) {
       this._wallWaves.loop(this._walls.getFrame(), this._players.getFrame());
-    }
+    }*/
 
     for (i = 0; i < 3; i++) {
+      this._resources.loop(this._resourceWaves, this._players.getFrame());
       this._resourceWaves.loop(
         this._walls.getFrame(),
         this._players.getFrame()
       );
     }
 
-    for (i = 0; i < 3; i++) {
+    /*for (i = 0; i < 3; i++) {
       this._playerWaves.loop(this._walls.getFrame(), this._players.getFrame());
-    }
+    }*/
 
     for (i = 0; i < 2; i++) {
       this._missiles.loop(this._walls.getFrame(), this._players, this._scores);
@@ -217,6 +217,14 @@
       this._viewY,
       this._zoom,
       wallColorizer
+    );
+    Renderer.render(
+      this._ctx,
+      this._resourceWaves.getFrame(),
+      this._viewX,
+      this._viewY,
+      this._zoom,
+      resourceWaveColorizer
     );
     Renderer.render(
       this._ctx,
