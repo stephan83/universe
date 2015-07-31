@@ -100,7 +100,11 @@
   Universe.prototype._logic = function() {
     this._walls.loop(this._players.getFrame());
 
-    this._resources.loop(this._players.getFrame(), this.addResource.bind(this));
+    this._resources.loop(
+      this._players.getFrame(),
+      this._walls.getFrame(),
+      this.addResource.bind(this)
+    );
 
     for (i = 0; i < 2; i++) {
       this._missiles.loop(this._walls.getFrame(), this._players, this._scores);

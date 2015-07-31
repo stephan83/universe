@@ -77,9 +77,16 @@
     var frame = this._frame;
 
     this._frame.each(function(x, y, player) {
-      for (var i = 1; i < 26; i++) {
-        for (var j = 1; j < DIRECTIONS.length; j++) {
-          var direction = DIRECTIONS[j];
+      for (var j = 0; j < DIRECTIONS.length; j++) {
+        var direction = DIRECTIONS[j];
+        for (var i = 1; i < 26; i++) {
+          var wall = wallsFrame.read(
+            x + i * direction[0],
+            y + i * direction[1]
+          );
+          if (wall) {
+            break;
+          }
           player = frame.read(
             x + i * direction[0],
             y + i * direction[1]
