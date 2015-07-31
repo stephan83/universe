@@ -1,7 +1,7 @@
 !function(exports) {
 
   function One(network) {
-    this._network = network || new FeedForward([26, 26, 21]);
+    this._network = network || new FeedForward([26, 26, 24, 21]);
     this._feedback = [0, 0, 0, 0];
   };
 
@@ -12,25 +12,19 @@
       0, 0, 0, 0, 0, 0
     ].concat(this._feedback);
 
-    if (sensors.resources) {
-      for (var i = 0; i < 8; i++) {
-        inputs[i] = (sensors.resources[i] || 0) / 20;
-      }
+    for (var i = 0; i < 8; i++) {
+      inputs[i] = sensors.resources[i] / 25;
     }
 
-    if (sensors.players) {
-      for (var i = 0; i < 8; i++) {
-        inputs[8 + i] = (sensors.players[i] || 0) / 20;
-      }
+    for (i = 0; i < 8; i++) {
+      inputs[8 + i] = sensors.players[i] / 25;
     }
 
-    if (sensors.walls) {
-      for (var i = 0; i < 8; i++) {
-        inputs[16 + i] = (sensors.walls[i] || 0) / 20;
-      }
+    for (i = 0; i < 4; i++) {
+      inputs[16 + i] = sensors.walls[i] / 25;
     }
 
-    inputs[20] = sensors.resource / 200;
+    inputs[20] = sensors.resource / 100;
     inputs[21] = sensors.ammo / 10;
 
     var outputs = this._network.process(inputs);

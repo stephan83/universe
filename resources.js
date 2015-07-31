@@ -5,10 +5,8 @@
     [1, 0], [0, -1], [-1, 1], [-1, -1]
   ];
 
-  function Resources(waveFrequency) {
-    this._waveFrequency = waveFrequency;
+  function Resources() {
     this._frame = new Frame();
-    this._cycle = 0;
   }
 
   Resources.prototype.getFrame = function() {
@@ -20,31 +18,29 @@
   };
 
   Resources.prototype.loop = function(playersFrame, addResourceCallback) {
-    this._frame.each(function(x, y, amount) {
-      var player = playersFrame.read(x, y);
+    playersFrame.each(function(x, y, player) {
+      var resource = this._frame.read(x, y);
 
-      if (player) {
-        player.resource += amount;
+      if (resource) {
+        player.resource = Math.max(100, player.resource + resource);
         this._frame.remove(x, y);
-        addResourceCallback(amount);
+        addResourceCallback(resource);
         return;
       }
 
-      for (var i = 0; i < 25; i++) {
+      for (var i = 1; i <= 25; i++) {
         for (var j = 0; j < DIRECTIONS.length; j++) {
           var direction = DIRECTIONS[j];
-          player = playersFrame.read(
+          resource = this._frame.read(
             x + i * direction[0],
             y + i * direction[1]
           );
-          if (player) {
-            player.sensors.resources[j] += 25 - i;
+          if (resource) {
+            player.sensors.resources[j] += 26 - i;
           }
         }
       }
     }.bind(this));
-
-    this._cycle++;
   };
 
   exports.Resources = Resources;

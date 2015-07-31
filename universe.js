@@ -235,7 +235,8 @@
       var cell = this._floor[rand];
       var x = cell[0];
       var y = cell[1];
-    } while(this._players.getFrame().read(x, y))
+    } while(this._resources.getFrame().read(x, y) ||
+            this._players.getFrame().read(x, y))
     this._aiMap[this._players.add(x, y, name, ai)] = ai;
   };
 

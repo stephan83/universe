@@ -5,10 +5,8 @@
     [1, 0], [0, -1]
   ];
 
-  function Walls(waveFrequency) {
-    this._waveFrequency = waveFrequency;
+  function Walls() {
     this._frame = new Frame();
-    this._cycle = 0;
   }
 
   Walls.prototype.getFrame = function() {
@@ -20,22 +18,20 @@
   };
 
   Walls.prototype.loop = function(playersFrame) {
-    this._frame.each(function(x, y, wall) {
-      for (var i = 0; i < 25; i++) {
+    playersFrame.each(function(x, y, player) {
+      for (var i = 1; i <= 25; i++) {
         for (var j = 0; j < DIRECTIONS.length; j++) {
           var direction = DIRECTIONS[j];
-          player = playersFrame.read(
+          var wall = this._frame.read(
             x + i * direction[0],
             y + i * direction[1]
           );
-          if (player) {
-            player.sensors.walls[j] += 25 - i;
+          if (wall) {
+            player.sensors.walls[j] += 26 - i;
           }
         }
       }
     }.bind(this));
-
-    this._cycle++;
   };
 
   exports.Walls = Walls;
