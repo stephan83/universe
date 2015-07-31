@@ -1,9 +1,9 @@
 !function() {
 
-  var NUM_PLAYERS = 4;
-  var NUM_LESS = 4;
+  var NUM_PLAYERS = 16;
+  var NUM_LESS = 16;
   var NUM_BEST = 5;
-  var BEST_EXPIRES = 10000;
+  var BEST_EXPIRES = 1000;
 
   var canvas = document.getElementById('universe');
 
@@ -24,29 +24,29 @@
   // Add random players
   for (i = 0; i < NUM_PLAYERS; i++) {
     universe.addPlayer(
-      Math.floor(Math.random() * 40) - 20,
-      Math.floor(Math.random() * 40) - 20,
+      Math.floor(Math.random() * 58) - 29,
+      Math.floor(Math.random() * 58) - 29,
       'player',
       new Brains.One()
     );
   }
   for (i = 0; i < NUM_LESS; i++) {
     universe.addPlayer(
-      Math.floor(Math.random() * 40) - 20,
-      Math.floor(Math.random() * 40) - 20,
+      Math.floor(Math.random() * 58) - 29,
+      Math.floor(Math.random() * 58) - 29,
       'player',
       new Brains.Less()
     );
   }
 
   // Add random resources
-  for (i = 0; i < NUM_PLAYERS + NUM_LESS; i++) {
+  /*for (i = 0; i < (NUM_PLAYERS + NUM_LESS) / 10; i++) {
     universe.addResource(
-      Math.floor(Math.random() * 40) - 20,
-      Math.floor(Math.random() * 40) - 20,
-      50 + Math.floor(Math.random() * 50)
+      Math.floor(Math.random() * 58) - 29,
+      Math.floor(Math.random() * 58) - 29,
+      20 + Math.floor(Math.random() * 50)
     );
-  }
+  }*/
 
   var lastTime;
   var lastCycle;
@@ -135,30 +135,28 @@
 
     for (i = 0; i < NUM_PLAYERS + NUM_LESS - alive.length; i++) {
       do {
-        var x = Math.floor(Math.random() * 40) - 20;
-        var y = Math.floor(Math.random() * 40) - 20;
+        var x = Math.floor(Math.random() * 58) - 29;
+        var y = Math.floor(Math.random() * 58) - 29;
       } while(universe._players.getFrame().read(x, y));
 
       if (aliveOne < NUM_PLAYERS) {
         aliveOne++;
-        if (best.length) {
-          var ai = best[Math.floor(Math.random() * best.length)].ai;
-        } else {
-          ai = null;
+        if (Math.random() < 0.1) {
+          var brain = new Brains.One();
+        } else if (best.length > 1) {
+          var brain1 = best[Math.floor(Math.random() * best.length)].ai;
+          do {
+            var brain2 = best[Math.floor(Math.random() * best.length)].ai;
+          } while (brain1 !== brain2)
+          if (Math.random() < 0.2) {
+            brain = Brains.One.mate(brain1, brain2);
+          } else {
+            brain = brain1.mutate();
+          }
         }
-        universe.addPlayer(
-          x,
-          y,
-          'player',
-          (Math.random() < 0.8 && ai) ? ai.clone() : new Brains.One()
-        );
+        universe.addPlayer(x, y, 'player', brain || new Brains.One());
       } else {
-        universe.addPlayer(
-          x,
-          y,
-          'player',
-          new Brains.Less()
-        );
+        universe.addPlayer(x, y, 'player', new Brains.Less());
       }
     }
   };

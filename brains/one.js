@@ -1,73 +1,39 @@
 !function(exports) {
 
-  function randomNeuron(n) {
-    var weights = [];
-
-    for (var i = 0; i < n; i++) {
-      weights.push((Math.random() < 0.5 ? 1 : 0) * (Math.random() < 0.5 ? -1 : 1));
-    }
-
-    return {
-      bias: (Math.random() < 0.5 ? 1 : 0) * (Math.random() < 0.5 ? -1 : 1),
-      weights: weights
-    }
-  }
-
-  function randomLayer(numInputs, numNeurons) {
-    var layer = [];
-
-    for (var i = 0; i < numNeurons; i++) {
-      layer.push(randomNeuron(numInputs));
-    }
-
-    return layer;
-  }
-
-  function One(layers) {
-    this._feedback = [0, 0, 0, 0]
-
-    if (layers) {
-      this._layers = layers.map(function(layer) {
-        return layer.map(function(neuron) {
-          return {
-            bias: neuron.bias + (Math.random() < 0.2 ? 1 : 0) * (Math.random() < 0.5 ? -1 : 1),
-            weights: neuron.weights.map(function(weight) {
-              return weight + (Math.random() < 0.2 ? 1 : 0) * (Math.random() < 0.5 ? -1 : 1);
-            })
-          };
-        });
-      });
-      return;
-    }
-
-    this._layers = [
-      randomLayer(22, 21)
-    ];
+  function One(network) {
+    this._network = network || new FeedForward([26, 26, 21]);
+    this._feedback = [0, 0, 0, 0];
   };
 
   One.prototype.loop = function(sensors) {
     var inputs = [
       0, 0, 0, 0, 0, 0, 0, 0,
       0, 0, 0, 0, 0, 0, 0, 0,
-      0, 0
+      0, 0, 0, 0, 0, 0
     ].concat(this._feedback);
 
     if (sensors.resources) {
       for (var i = 0; i < 8; i++) {
-        inputs[i] = Math.min(1, (sensors.resources[i] || 0) / 20);
+        inputs[i] = (sensors.resources[i] || 0) / 20;
       }
     }
 
     if (sensors.players) {
       for (var i = 0; i < 8; i++) {
-        inputs[8 + i] = Math.min(1, (sensors.players[i] || 0) / 20);
+        inputs[8 + i] = (sensors.players[i] || 0) / 20;
       }
     }
 
-    inputs[16] = Math.min(1, sensors.resource / 200);
-    inputs[17] = Math.min(1, sensors.ammo / 10);
+    if (sensors.walls) {
+      for (var i = 0; i < 8; i++) {
+        inputs[16 + i] = (sensors.walls[i] || 0) / 20;
+      }
+    }
 
-    var outputs = Neurons.sigmoidNetwork(this._layers, inputs);
+    inputs[20] = sensors.resource / 200;
+    inputs[21] = sensors.ammo / 10;
+
+    var outputs = this._network.process(inputs);
 
     var maxValue = 0;
     var maxIndex;
@@ -92,8 +58,12 @@
     }
   };
 
-  One.prototype.clone = function() {
-    return new One(this._layers);
+  One.prototype.mutate = function() {
+    return new One(this._network.mutate());
+  };
+
+  One.mate = function(a, b) {
+    return new One(FeedForward.mate(a._network, b._network));
   };
 
   exports.One = One;

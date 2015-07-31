@@ -85,7 +85,7 @@
       scores[player.id] = scores[player.id] || 0;
       scores[player.id]++;
 
-      if (player.resource < 1) {
+      if (player.resource < 1 || player.age >= 1000) {
         this._frame.remove(x, y);
         return;
       }

@@ -55,8 +55,8 @@
 
     var critical = sensors.resource <= 60;
 
-    if (highestPlayerSensorVal > 0 && sensors.ammo >= 10 && !critical) {
-      if (highestPlayerSensorVal > 30) {
+    if (highestPlayerSensorVal > 0 && sensors.ammo >= 5 && !critical) {
+      if (highestPlayerSensorVal > 10) {
         return Universe.fireCommand((highestPlayerSensorDir + 4) % 8);
       }
       return Universe.moveCommand((highestPlayerSensorDir + 4) % 8);

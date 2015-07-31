@@ -40,6 +40,7 @@
       waves.forEach(function(wave) {
         wave.energy--;
 
+
         if (wave.energy > 0) {
           var direction = this._directions[wave.direction];
           var destX = x + direction[0];

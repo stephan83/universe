@@ -10,10 +10,10 @@
     [1, 0], [0, -1]
   ];
 
-  var WALL_WAVES_INITIAL_ENERGY = 20;
-  var RESOURCE_WAVES_INITIAL_ENERGY = 20;
-  var PLAYER_WAVES_INITIAL_ENERGY = 20;
-  var MISSILES_INITIAL_ENERGY = 20;
+  var WALL_WAVES_INITIAL_ENERGY = 15;
+  var RESOURCE_WAVES_INITIAL_ENERGY = 15;
+  var PLAYER_WAVES_INITIAL_ENERGY = 15;
+  var MISSILES_INITIAL_ENERGY = 15;
   var MISSILES_COST = 5;
 
   var INITIAL_ZOOM = 3;
@@ -108,19 +108,21 @@
     var lostEnergy = this._players.getLostEnergy();
 
     // tmp
-    if(lostEnergy > 50) {
+    while(lostEnergy > 0) {
       do {
-        var x = Math.floor(Math.random() * 40) - 20;
-        var y = Math.floor(Math.random() * 40) - 20;
+        var x = Math.floor(Math.random() * 58) - 29;
+        var y = Math.floor(Math.random() * 58) - 29;
       } while(this._resources.getFrame().read(x, y))
-      this.addResource(x, y, lostEnergy);
-      this._players.resetLostEnergy();
+      var amount = Math.min(lostEnergy, 50 + Math.floor(Math.random() * 50));
+      this.addResource(x, y, amount);
+      lostEnergy -= amount;
     }
+    this._players.resetLostEnergy();
 
-    /*for (var i = 0; i < 1; i++) {
+    for (var i = 0; i < 1; i++) {
       this._walls.loop(this._wallWaves);
       this._wallWaves.loop(this._walls.getFrame(), this._players.getFrame());
-    }*/
+    }
 
     for (i = 0; i < 1; i++) {
       this._resources.loop(this._resourceWaves, this._players.getFrame());
