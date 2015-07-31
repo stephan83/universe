@@ -19,13 +19,14 @@
     this._frame.write(x, y, amount);
   };
 
-  Resources.prototype.loop = function(playersFrame) {
+  Resources.prototype.loop = function(playersFrame, addResourceCallback) {
     this._frame.each(function(x, y, amount) {
       var player = playersFrame.read(x, y);
 
       if (player) {
         player.resource += amount;
         this._frame.remove(x, y);
+        addResourceCallback(amount);
         return;
       }
 

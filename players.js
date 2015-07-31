@@ -8,7 +8,6 @@
   function Players(directions) {
     this._directions = directions;
     this._frame = new Frame();
-    this._lostEnergy = 0;
     this._idCount = 0;
   }
 
@@ -22,18 +21,6 @@
 
   Players.prototype.getFrame = function() {
     return this._frame;
-  };
-
-  Players.prototype.getLostEnergy = function() {
-    return this._lostEnergy;
-  };
-
-  Players.prototype.incrLostEnergy = function(value) {
-    this._lostEnergy += value;
-  };
-
-  Players.prototype.resetLostEnergy = function() {
-    this._lostEnergy = 0;
   };
 
   Players.prototype.add = function(x, y, name, ai) {
@@ -106,7 +93,6 @@
 
     this._frame.each(function(x, y, player) {
       player.resource--;
-      this._lostEnergy++;
       scores[player.id] = scores[player.id] || 0;
       scores[player.id]++;
 

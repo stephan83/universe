@@ -1,8 +1,8 @@
 !function() {
 
-  var NUM_PLAYERS = 16;
-  var NUM_LESS = 16;
-  var NUM_BEST = 5;
+  var NUM_PLAYERS = 50;
+  var NUM_LESS = 0;
+  var NUM_BEST = 10;
   var BEST_EXPIRES = 1000;
 
   var canvas = document.getElementById('universe');
@@ -11,42 +11,23 @@
   canvas.height = window.innerHeight;
 
   var ctx = canvas.getContext('2d');
-  var universe = new Universe(ctx);
+  var universe = new Universe(ctx, map);
 
-  // Create walls
-  for (var i = -30; i <= 30; i++) {
-    universe.addWall(i, 30);
-    universe.addWall(i, -30);
-    universe.addWall(30, i);
-    universe.addWall(-30, i);
+  // Add random resource
+  for (i = 0; i < NUM_PLAYERS + NUM_LESS; i++) {
+    universe.addResource(50 + Math.ceil(Math.random() * 50));
+  }
+  for (i = 0; i < NUM_LESS; i++) {
+    universe.addPlayer('player', new Brains.Less());
   }
 
   // Add random players
   for (i = 0; i < NUM_PLAYERS; i++) {
-    universe.addPlayer(
-      Math.floor(Math.random() * 58) - 29,
-      Math.floor(Math.random() * 58) - 29,
-      'player',
-      new Brains.One()
-    );
+    universe.addPlayer('player', new Brains.One());
   }
   for (i = 0; i < NUM_LESS; i++) {
-    universe.addPlayer(
-      Math.floor(Math.random() * 58) - 29,
-      Math.floor(Math.random() * 58) - 29,
-      'player',
-      new Brains.Less()
-    );
+    universe.addPlayer('player', new Brains.Less());
   }
-
-  // Add random resources
-  /*for (i = 0; i < (NUM_PLAYERS + NUM_LESS) / 10; i++) {
-    universe.addResource(
-      Math.floor(Math.random() * 58) - 29,
-      Math.floor(Math.random() * 58) - 29,
-      20 + Math.floor(Math.random() * 50)
-    );
-  }*/
 
   var lastTime;
   var lastCycle;
@@ -134,11 +115,6 @@
     }
 
     for (i = 0; i < NUM_PLAYERS + NUM_LESS - alive.length; i++) {
-      do {
-        var x = Math.floor(Math.random() * 58) - 29;
-        var y = Math.floor(Math.random() * 58) - 29;
-      } while(universe._players.getFrame().read(x, y));
-
       if (aliveOne < NUM_PLAYERS) {
         aliveOne++;
         if (Math.random() < 0.1) {
@@ -154,9 +130,9 @@
             brain = brain1.mutate();
           }
         }
-        universe.addPlayer(x, y, 'player', brain || new Brains.One());
+        universe.addPlayer('player', brain || new Brains.One());
       } else {
-        universe.addPlayer(x, y, 'player', new Brains.Less());
+        universe.addPlayer('player', new Brains.Less());
       }
     }
   };

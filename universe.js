@@ -22,7 +22,7 @@
 
   // Used to colorize the walls
   function wallColorizer() {
-    return 'rgb(200,120,100)';
+    return 'rgb(150,150,150)';
   }
 
   // Used to colorize the resources
@@ -49,7 +49,7 @@
     return 'rgb(' + intensity + ',' + Math.round(intensity / 2) + ',0)';
   }
 
-  function Universe(ctx) {
+  function Universe(ctx, map) {
     this._ctx = ctx;
 
     this._walls = new Walls(1);
@@ -70,26 +70,37 @@
 
     this._cycle = 0;
     this._lastRenderTime = 0;
+
+    this._floor = [];
+    this._initMap(map);
   }
 
+  Universe.prototype._initMap = function(map) {
+    var width = 0;
+    map.forEach(function(row, y) {
+      width = Math.max(width, row.length);
+    });
+
+    map.forEach(function(row, y) {
+      y -= Math.floor(map.length / 2);
+      row.split('').forEach(function(cell, x) {
+        x -= Math.floor(width / 2);
+        switch (cell) {
+        case 'x':
+          this._walls.add(x, y);
+          break;
+        case '.':
+          this._floor.push([x, y]);
+          break;
+        }
+      }.bind(this));
+    }.bind(this));
+  };
+
   Universe.prototype._logic = function() {
-    var lostEnergy = this._players.getLostEnergy();
-
-    // tmp
-    while(lostEnergy > 0) {
-      do {
-        var x = Math.floor(Math.random() * 58) - 29;
-        var y = Math.floor(Math.random() * 58) - 29;
-      } while(this._resources.getFrame().read(x, y))
-      var amount = Math.min(lostEnergy, 50 + Math.floor(Math.random() * 50));
-      this.addResource(x, y, amount);
-      lostEnergy -= amount;
-    }
-    this._players.resetLostEnergy();
-
     this._walls.loop(this._players.getFrame());
 
-    this._resources.loop(this._players.getFrame());
+    this._resources.loop(this._players.getFrame(), this.addResource.bind(this));
 
     for (i = 0; i < 2; i++) {
       this._missiles.loop(this._walls.getFrame(), this._players, this._scores);
@@ -207,20 +218,25 @@
     );
   };
 
-  Universe.prototype.addWall = function(x, y) {
-    this._walls.add(x, y);
-  };
-
-  Universe.prototype.addResource = function(x, y, amount) {
+  Universe.prototype.addResource = function(amount) {
+    do {
+      var rand = Math.floor(Math.random() * this._floor.length);
+      var cell = this._floor[rand];
+      var x = cell[0];
+      var y = cell[1];
+    } while(this._resources.getFrame().read(x, y) ||
+            this._players.getFrame().read(x, y))
     this._resources.add(x, y, amount);
   };
 
-  Universe.prototype.addPlayer = function(x, y, name, ai) {
+  Universe.prototype.addPlayer = function(name, ai) {
+    do {
+      var rand = Math.floor(Math.random() * this._floor.length);
+      var cell = this._floor[rand];
+      var x = cell[0];
+      var y = cell[1];
+    } while(this._players.getFrame().read(x, y))
     this._aiMap[this._players.add(x, y, name, ai)] = ai;
-
-    if (this._cycle) {
-      this._players.incrLostEnergy(-100);
-    }
   };
 
   Universe.moveCommand = Players.moveCommand;

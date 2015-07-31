@@ -55,7 +55,6 @@
           var player = players.getFrame().read(destX, destY);
 
           if (player) {
-            players.incrLostEnergy(Math.min(missile.energy, player.resource));
             player.resource -= missile.energy;
 
             scores[missile.emitter] = scores[missile.emitter] || 0;
