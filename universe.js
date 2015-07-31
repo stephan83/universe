@@ -10,9 +10,6 @@
     [1, 0], [0, -1]
   ];
 
-  var WALL_WAVES_INITIAL_ENERGY = 15;
-  var RESOURCE_WAVES_INITIAL_ENERGY = 15;
-  var PLAYER_WAVES_INITIAL_ENERGY = 15;
   var MISSILES_INITIAL_ENERGY = 15;
   var MISSILES_COST = 5;
 
@@ -28,19 +25,9 @@
     return 'rgb(200,120,100)';
   }
 
-  // Used to colorize the wall waves
-  function wallWaveColorizer() {
-    return 'rgb(50,40,30)';
-  }
-
   // Used to colorize the resources
   function resourceColorizer() {
     return 'rgb(0,255,20)';
-  }
-
-  // Used to colorize the resource waves
-  function resourceWaveColorizer() {
-    return 'rgb(0,50,10)';
   }
 
   // Used to colorize the player's squares
@@ -50,11 +37,6 @@
       return 'rgb(' + intensity + ',0,' + intensity + ')';
     }
     return 'rgb(0,' + intensity + ',' + intensity + ')';
-  }
-
-  // Used to colorize the waves squares
-  function playerWaveColorizer() {
-    return 'rgb(0,60,60)';
   }
 
   // Used to colorize the missiles squares
@@ -73,20 +55,6 @@
     this._walls = new Walls(1);
     this._resources = new Resources(1);
     this._players = new Players(DIRECTIONS);
-    this._wallWaves = new Waves(
-      'walls',
-      STRAIGHT_DIRECTIONS,
-      WALL_WAVES_INITIAL_ENERGY
-    );
-    this._resourceWaves = new Waves(
-      'resources',
-      DIRECTIONS,
-      RESOURCE_WAVES_INITIAL_ENERGY
-    );
-    this._playerWaves = new Waves(
-      'players', DIRECTIONS,
-      PLAYER_WAVES_INITIAL_ENERGY
-    );
     this._missiles = new Missiles(
       DIRECTIONS,
       MISSILES_COST,
@@ -119,22 +87,9 @@
     }
     this._players.resetLostEnergy();
 
-    for (var i = 0; i < 1; i++) {
-      this._walls.loop(this._wallWaves);
-      this._wallWaves.loop(this._walls.getFrame(), this._players.getFrame());
-    }
+    this._walls.loop(this._players.getFrame());
 
-    for (i = 0; i < 1; i++) {
-      this._resources.loop(this._resourceWaves, this._players.getFrame());
-      this._resourceWaves.loop(
-        this._walls.getFrame(),
-        this._players.getFrame()
-      );
-    }
-
-    for (i = 0; i < 1; i++) {
-      this._playerWaves.loop(this._walls.getFrame(), this._players.getFrame());
-    }
+    this._resources.loop(this._players.getFrame());
 
     for (i = 0; i < 2; i++) {
       this._missiles.loop(this._walls.getFrame(), this._players, this._scores);
@@ -142,7 +97,6 @@
     
     this._players.loop(
       this._walls.getFrame(),
-      this._playerWaves,
       this._missiles,
       this._scores
     );

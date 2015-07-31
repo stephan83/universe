@@ -1,5 +1,10 @@
 !function(exports) {
 
+  var DIRECTIONS = [
+    [-1, 0], [0, 1], [1, -1], [1, 1],
+    [1, 0], [0, -1], [-1, 1], [-1, -1]
+  ];
+
   function Resources(waveFrequency) {
     this._waveFrequency = waveFrequency;
     this._frame = new Frame();
@@ -14,22 +19,29 @@
     this._frame.write(x, y, amount);
   };
 
-  Resources.prototype.loop = function(resourceWaves, playersFrame) {
+  Resources.prototype.loop = function(playersFrame) {
     this._frame.each(function(x, y, amount) {
       var player = playersFrame.read(x, y);
 
       if (player) {
         player.resource += amount;
-        playersFrame.write(x, y, player);  
         this._frame.remove(x, y);
+        return;
+      }
+
+      for (var i = 0; i < 25; i++) {
+        for (var j = 0; j < DIRECTIONS.length; j++) {
+          var direction = DIRECTIONS[j];
+          player = playersFrame.read(
+            x + i * direction[0],
+            y + i * direction[1]
+          );
+          if (player) {
+            player.sensors.resources[j] += 25 - i;
+          }
+        }
       }
     }.bind(this));
-
-    if (this._cycle % this._waveFrequency === 0) {
-      this._frame.each(function(x, y, wall) {
-        resourceWaves.emit(x, y, this._frame);
-      }.bind(this));
-    }
 
     this._cycle++;
   };
