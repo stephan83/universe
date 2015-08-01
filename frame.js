@@ -33,12 +33,12 @@
     }
   };
 
-  Frame.prototype.each = function(func) {
+  Frame.prototype.each = function(func, ctx) {
     this._eachDepth++;
     for (var hash in this._informationMap) {
       if (this._informationMap.hasOwnProperty(hash)) {
         var coords = Frame._unhash(hash);
-        func(coords[0], coords[1], this._informationMap[hash]);
+        func.call(ctx, coords[0], coords[1], this._informationMap[hash]);
       }
     }
     this._eachDepth--;

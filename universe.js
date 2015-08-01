@@ -52,15 +52,6 @@
   function Universe(ctx, map) {
     this._ctx = ctx;
 
-    this._walls = new Walls(1);
-    this._resources = new Resources(1);
-    this._players = new Players(DIRECTIONS);
-    this._missiles = new Missiles(
-      DIRECTIONS,
-      MISSILES_COST,
-      MISSILES_INITIAL_ENERGY
-    );
-
     this._zoom = INITIAL_ZOOM;
     this._viewX = INITIAL_VIEW_X;
     this._viewY = INITIAL_VIEW_Y;
@@ -72,75 +63,29 @@
     this._cycle = 0;
     this._lastRenderTime = 0;
 
+    this._walls = new Walls();
+    this._resources = new Resources();
+    this._players = new Players();
+    this._missiles = new Missiles(
+      DIRECTIONS,
+      MISSILES_COST,
+      MISSILES_INITIAL_ENERGY
+    );
+
+    this._walls.setPlayersFrame(this._players.getFrame());
+    this._resources.setPlayersFrame(this._players.getFrame());
+    this._resources.setWallsFrame(this._walls.getFrame());
+    this._resources.setAddResource(this.addResource.bind(this));
+    this._players.setWallsFrame(this._walls.getFrame());
+    this._players.setMissiles(this._missiles);
+    this._players.setScores(this._scores);
+    this._missiles.setPlayers(this._players);
+    this._missiles.setWallsFrame(this._walls.getFrame());
+    this._missiles.setScores(this._scores);
+
     this._floor = [];
     this._initMap(map);
   }
-
-  Universe.prototype._initMap = function(map) {
-    var width = 0;
-    map.forEach(function(row, y) {
-      width = Math.max(width, row.length);
-    });
-
-    map.forEach(function(row, y) {
-      y -= Math.floor(map.length / 2);
-      row.split('').forEach(function(cell, x) {
-        x -= Math.floor(width / 2);
-        switch (cell) {
-        case 'x':
-          this._walls.add(x, y);
-          break;
-        case '.':
-          this._floor.push([x, y]);
-          break;
-        }
-      }.bind(this));
-    }.bind(this));
-  };
-
-  Universe.prototype._logic = function() {
-    this._walls.loop(this._players.getFrame());
-
-    this._resources.loop(
-      this._players.getFrame(),
-      this._walls.getFrame(),
-      this.addResource.bind(this)
-    );
-
-    for (i = 0; i < 2; i++) {
-      this._missiles.loop(this._walls.getFrame(), this._players, this._scores);
-    }
-    
-    this._players.loop(
-      this._walls.getFrame(),
-      this._missiles,
-      this._scores
-    );
-
-    this._cycle++;
-
-    this.onLogic && this.onLogic();
-  };
-
-  Universe.prototype._mainLoop = function() {
-    var now = Date.now();
-
-    if (now > this._lastRenderTime + 1000 / MAX_FRAME_RATE) {
-      this._lastRenderTime = now;
-      this.render();
-    }
-
-    this._logic();
-
-    if (this._cycleTimeout) {
-      setTimeout(
-        window.requestAnimationFrame.bind(window, this._mainLoop.bind(this))
-        , this._cycleTimeout
-      );
-    } else {
-      window.requestAnimationFrame(this._mainLoop.bind(this));
-    }
-  };
 
   Universe.prototype.getZoom = function() {
     return this._zoom;
@@ -255,6 +200,64 @@
 
   Universe.moveCommand = Players.moveCommand;
   Universe.fireCommand = Players.fireCommand;
+
+  Universe.prototype._initMap = function(map) {
+    var width = 0;
+    map.forEach(function(row, y) {
+      width = Math.max(width, row.length);
+    });
+
+    map.forEach(function(row, y) {
+      y -= Math.floor(map.length / 2);
+      row.split('').forEach(function(cell, x) {
+        x -= Math.floor(width / 2);
+        switch (cell) {
+        case 'x':
+          this._walls.add(x, y);
+          break;
+        case '.':
+          this._floor.push([x, y]);
+          break;
+        }
+      }.bind(this));
+    }.bind(this));
+  };
+
+  Universe.prototype._logic = function() {
+    this._walls.loop(this._players.getFrame());
+
+    this._resources.loop();
+
+    for (i = 0; i < 2; i++) {
+      this._missiles.loop(this._walls.getFrame(), this._players, this._scores);
+    }
+    
+    this._players.loop();
+
+    this._cycle++;
+
+    this.onLogic && this.onLogic();
+  };
+
+  Universe.prototype._mainLoop = function() {
+    var now = Date.now();
+
+    if (now > this._lastRenderTime + 1000 / MAX_FRAME_RATE) {
+      this._lastRenderTime = now;
+      this.render();
+    }
+
+    this._logic();
+
+    if (this._cycleTimeout) {
+      setTimeout(
+        window.requestAnimationFrame.bind(window, this._mainLoop.bind(this))
+        , this._cycleTimeout
+      );
+    } else {
+      window.requestAnimationFrame(this._mainLoop.bind(this));
+    }
+  };
 
   exports.Universe = Universe;
 

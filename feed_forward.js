@@ -14,15 +14,15 @@
     for (var i = 0; i < sizes.length; i++) {
       ioLength += sizes[i];
       if (i > 0) {
-        length += (sizes[i - 1] + 1) * sizes[i];
+        dataLength += (sizes[i - 1] + 1) * sizes[i];
       }
     }
 
     if (data) {
       this._data = new Float32Array(data);
     } else {
-      this._data = new Float32Array(length);
-      for (var i = 0; i < length; i++) {
+      this._data = new Float32Array(dataLength);
+      for (var i = 0; i < dataLength; i++) {
         this._data[i] = randomWeight();
       }
     }

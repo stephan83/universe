@@ -5,8 +5,7 @@
     [1, 0], [0, -1], [-1, 1], [-1, -1]
   ];
 
-  function Players(directions) {
-    this._directions = directions;
+  function Players() {
     this._frame = new Frame();
     this._idCount = 0;
   }
@@ -21,6 +20,18 @@
 
   Players.prototype.getFrame = function() {
     return this._frame;
+  };
+
+  Players.prototype.setWallsFrame = function(value) {
+    this._wallsFrame = value;
+  };
+
+  Players.prototype.setMissiles = function(value) {
+    this._missiles = value;
+  };
+
+  Players.prototype.setScores = function(value) {
+    this._scores = value;
   };
 
   Players.prototype.add = function(x, y, team, ai) {
@@ -45,13 +56,13 @@
     return id;
   };
 
-  Players.prototype.move = function(x, y, dir, wallsFrame) {
+  Players.prototype.move = function(x, y, dir) {
     var player = this._frame.read(x, y);
-    var direction = this._directions[dir];
+    var direction = DIRECTIONS[dir];
     var newX = x + direction[0];
     var newY = y + direction[1];
 
-    if (wallsFrame.read(newX, newY)) {
+    if (this._wallsFrame.read(newX, newY)) {
       return;
     }
 
@@ -63,85 +74,87 @@
     }
   };
 
-  Players.prototype.fire = function(x, y, dir, wallsFrame, missile, playersWave) {
+  Players.prototype.fire = function(x, y, dir) {
     var player = this._frame.read(x, y);
 
-    if (player.ammo < missile.getCost()) {
+    if (player.ammo < this._missiles.getCost()) {
       return;
     }
 
-    player.ammo -= missile.getCost();
+    player.ammo -= this._missiles.getCost();
     this._frame.write(x, y, player);
-    missile.fire(player, x, y, dir, wallsFrame, this._frame);
+    this._missiles.fire(player, x, y, dir, this._wallsFrame, this._frame);
   };
 
-  Players.prototype.loop = function(wallsFrame, missile, scores) {
-    var frame = this._frame;
+  Players.prototype.loop = function() {
+    this._frame.each(this._loop1, this);
+    this._frame.each(this._loop2, this);
+  };
 
-    this._frame.each(function(x, y, player) {
-      for (var j = 0; j < DIRECTIONS.length; j++) {
-        var direction = DIRECTIONS[j];
-        for (var i = 1; i < 26; i++) {
-          var wall = wallsFrame.read(
-            x + i * direction[0],
-            y + i * direction[1]
-          );
-          if (wall) {
-            break;
-          }
-          foo = frame.read(
-            x + i * direction[0],
-            y + i * direction[1]
-          );
-          if (foo) {
-            if (foo.team === player.team) {
-              player.sensors.allies[j] += 26 - i;
-            } else {
-              player.sensors.enemies[j] += 26 - i;
-            }
+  Players.prototype._loop1 = function(x, y, player) {
+    for (var j = 0; j < DIRECTIONS.length; j++) {
+      var direction = DIRECTIONS[j];
+      for (var i = 1; i < 26; i++) {
+        var wall = this._wallsFrame.read(
+          x + i * direction[0],
+          y + i * direction[1]
+        );
+        if (wall) {
+          break;
+        }
+        foo = this._frame.read(
+          x + i * direction[0],
+          y + i * direction[1]
+        );
+        if (foo) {
+          if (foo.team === player.team) {
+            player.sensors.allies[j] += 26 - i;
+          } else {
+            player.sensors.enemies[j] += 26 - i;
           }
         }
       }
-    });
+    }
+  };
 
-    this._frame.each(function(x, y, player) {
-      player.resource--;
-      scores[player.id] = scores[player.id] || 0;
-      scores[player.id]++;
+  Players.prototype._loop2 = function(x, y, player) {
+    player.resource--;
+    this._scores[player.id] = this._scores[player.id] || 0;
+    this._scores[player.id]++;
 
-      if (player.resource < 1 || player.age >= (1000 + Math.ceil(Math.random() * 10))) {
-        this._frame.remove(x, y);
-        return;
+    if (player.resource < 1 ||
+        player.age >= (1000 + Math.ceil(Math.random() * 10))) {
+      this._frame.remove(x, y);
+      return;
+    }
+
+    var sensors = player.sensors;
+    player.age++;
+    player.ammo = Math.min(10, player.ammo + 1);
+    player.sensors = {
+      resources: [0, 0, 0, 0, 0, 0, 0, 0],
+      allies: [0, 0, 0, 0, 0, 0, 0, 0],
+      enemies: [0, 0, 0, 0, 0, 0, 0, 0],
+      missiles: [0, 0, 0, 0, 0, 0, 0, 0],
+      walls: [0, 0, 0, 0]
+    };
+    this._frame.write(x, y, player);
+
+    sensors.resource = player.resource;
+    sensors.ammo = player.ammo;
+    
+    var command = player.ai.loop(sensors);
+
+    if (command) {
+      switch (command.action) {
+      case 'move':
+        this.move(x, y, command.direction);
+        break;
+      case 'fire':
+        this.fire(x, y, command.direction);
+        break;
       }
-
-      var sensors = player.sensors;
-      player.age++;
-      player.ammo = Math.min(10, player.ammo + 1);
-      player.sensors = {
-        resources: [0, 0, 0, 0, 0, 0, 0, 0],
-        allies: [0, 0, 0, 0, 0, 0, 0, 0],
-        enemies: [0, 0, 0, 0, 0, 0, 0, 0],
-        missiles: [0, 0, 0, 0, 0, 0, 0, 0],
-        walls: [0, 0, 0, 0]
-      };
-      this._frame.write(x, y, player);
-
-      sensors.resource = player.resource;
-      sensors.ammo = player.ammo;
-      
-      var command = player.ai.loop(sensors);
-
-      if (command) {
-        switch (command.action) {
-        case 'move':
-          this.move(x, y, command.direction, wallsFrame);
-          break;
-        case 'fire':
-          this.fire(x, y, command.direction, wallsFrame, missile);
-          break;
-        }
-      }
-    }.bind(this));
+    }
   };
 
   exports.Players = Players;

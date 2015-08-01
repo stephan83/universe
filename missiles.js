@@ -15,12 +15,24 @@
     return this._cost;
   };
 
-  Missiles.prototype.fire = function(player, x, y, dir, wallsFrame) {
+  Missiles.prototype.setWallsFrame = function(value) {
+    this._wallsFrame = value;
+  };
+
+  Missiles.prototype.setPlayers = function(value) {
+    this._players = value;
+  };
+
+  Missiles.prototype.setScores = function(value) {
+    this._scores = value;
+  };
+
+  Missiles.prototype.fire = function(player, x, y, dir) {
     var direction = this._directions[dir];
     var startX = x + direction[0];
     var startY = y + direction[1];
 
-    if (wallsFrame.read(startX, startY)) {
+    if (this._wallsFrame.read(startX, startY)) {
       return;
     }
 
@@ -35,7 +47,7 @@
     this._frame.write(startX, startY, missiles);
   };
 
-  Missiles.prototype.loop = function(wallsFrame, players, scores, cycle) {
+  Missiles.prototype.loop = function() {
     var previous = this._frame;
     this._frame = new Frame();
 
@@ -48,29 +60,29 @@
           var destX = x + direction[0];
           var destY = y + direction[1];
 
-          if (wallsFrame.read(destX, destY)) {
+          if (this._wallsFrame.read(destX, destY)) {
             return;
           }
 
-          var player = players.getFrame().read(destX, destY);
+          var player = this._players.getFrame().read(destX, destY);
 
           if (player) {
             player.resource -= missile.energy;
 
-            scores[missile.emitter.id] = scores[missile.emitter.id] || 0;
+            this._scores[missile.emitter.id] = this._scores[missile.emitter.id] || 0;
 
             if (missile.emitter.team === player.team) {
-              scores[missile.emitter.id] = Math.max(0, scores[missile.emitter.id] - missile.energy);
+              this._scores[missile.emitter.id] = Math.max(0, this._scores[missile.emitter.id] - missile.energy);
             } else {
-              scores[missile.emitter.id] += missile.energy;
+              this._scores[missile.emitter.id] += missile.energy;
             }
 
             if (player.resource < 1) {
-              players.getFrame().remove(destX, destY);
+              this._players.getFrame().remove(destX, destY);
             } else {
               var sensor = player.sensors.missiles;
               sensor[(missiles.direction + 4) % 8] += missile.energy;
-              players.getFrame().write(destX, destY, player);
+              this._players.getFrame().write(destX, destY, player);
             }   
           } else {
             var dest = this._frame.read(destX, destY) || [];
