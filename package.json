@@ -1,0 +1,35 @@
+{
+  "name": "universe",
+  "version": "0.0.1",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/stephan83/universe.git"
+  },
+  "author": "Stephan Florquin",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/stephan83/universe/issues"
+  },
+  "homepage": "https://github.com/stephan83/universe",
+  "devDependencies": {
+    "browserify": "^11.0.1",
+    "bundle-collapser": "^1.2.1",
+    "gulp": "^3.9.0",
+    "gulp-connect": "^2.2.0",
+    "gulp-if": "^1.2.5",
+    "gulp-sourcemaps": "^1.5.2",
+    "gulp-uglify": "^1.2.0",
+    "gulp-util": "^3.0.6",
+    "rimraf": "^2.4.2",
+    "run-sequence": "^1.1.2",
+    "vinyl-buffer": "^1.0.0",
+    "vinyl-source-stream": "^1.1.0",
+    "watchify": "^3.3.1",
+    "yargs": "^3.16.1"
+  }
+}
