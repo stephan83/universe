@@ -18,7 +18,7 @@
   var INITIAL_VIEW_Y = 0;
 
   var MAX_FRAME_RATE = 30;
-  var MAIN_LOOP_TIMEOUT = 0;
+  var CYCLE_TIMEOUT = 20;
 
   // Used to colorize the walls
   function wallColorizer() {
@@ -64,6 +64,7 @@
     this._zoom = INITIAL_ZOOM;
     this._viewX = INITIAL_VIEW_X;
     this._viewY = INITIAL_VIEW_Y;
+    this._cycleTimeout = CYCLE_TIMEOUT;
 
     this._scores = {};
     this._aiMap = {};
@@ -131,10 +132,10 @@
 
     this._logic();
 
-    if (MAIN_LOOP_TIMEOUT) {
+    if (this._cycleTimeout) {
       setTimeout(
         window.requestAnimationFrame.bind(window, this._mainLoop.bind(this))
-        , MAIN_LOOP_TIMEOUT
+        , this._cycleTimeout
       );
     } else {
       window.requestAnimationFrame(this._mainLoop.bind(this));
@@ -163,6 +164,14 @@
 
   Universe.prototype.setViewY = function(value) {
     this._viewY = value;
+  };
+
+  Universe.prototype.getCycleTimeout = function() {
+    return this._cycleTimeout;
+  };
+
+  Universe.prototype.setCycleTimeout = function(value) {
+    this._cycleTimeout = Math.max(0, value);
   };
 
   Universe.prototype.getCycle = function() {
@@ -233,7 +242,7 @@
     this._resources.add(x, y, amount);
   };
 
-  Universe.prototype.addPlayer = function(name, ai) {
+  Universe.prototype.addPlayer = function(team, ai) {
     do {
       var rand = Math.floor(Math.random() * this._floor.length);
       var cell = this._floor[rand];
@@ -241,7 +250,7 @@
       var y = cell[1];
     } while(this._resources.getFrame().read(x, y) ||
             this._players.getFrame().read(x, y))
-    this._aiMap[this._players.add(x, y, name, ai)] = ai;
+    this._aiMap[this._players.add(x, y, team, ai)] = ai;
   };
 
   Universe.moveCommand = Players.moveCommand;

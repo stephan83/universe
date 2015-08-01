@@ -23,16 +23,18 @@
     return this._frame;
   };
 
-  Players.prototype.add = function(x, y, name, ai) {
+  Players.prototype.add = function(x, y, team, ai) {
     var id = this._idCount++;
 
     this._frame.write(x, y, {
-      name: name,
+      team: team,
       resource: 100,
       ammo: 10,
       sensors: {
         resources: [0, 0, 0, 0, 0, 0, 0, 0],
-        players: [0, 0, 0, 0, 0, 0, 0, 0],
+        allies: [0, 0, 0, 0, 0, 0, 0, 0],
+        enemies: [0, 0, 0, 0, 0, 0, 0, 0],
+        missiles: [0, 0, 0, 0, 0, 0, 0, 0],
         walls: [0, 0, 0, 0]
       },
       ai: ai,
@@ -87,12 +89,16 @@
           if (wall) {
             break;
           }
-          player = frame.read(
+          foo = frame.read(
             x + i * direction[0],
             y + i * direction[1]
           );
-          if (player) {
-            player.sensors.players[j] += 26 - i;
+          if (foo) {
+            if (foo.team === player.team) {
+              player.sensors.allies[j] += 26 - i;
+            } else {
+              player.sensors.enemies[j] += 26 - i;
+            }
           }
         }
       }
@@ -103,7 +109,7 @@
       scores[player.id] = scores[player.id] || 0;
       scores[player.id]++;
 
-      if (player.resource < 1 || player.age >= 1000) {
+      if (player.resource < 1 || player.age >= (1000 + Math.ceil(Math.random() * 10))) {
         this._frame.remove(x, y);
         return;
       }
@@ -113,7 +119,9 @@
       player.ammo = Math.min(10, player.ammo + 1);
       player.sensors = {
         resources: [0, 0, 0, 0, 0, 0, 0, 0],
-        players: [0, 0, 0, 0, 0, 0, 0, 0],
+        allies: [0, 0, 0, 0, 0, 0, 0, 0],
+        enemies: [0, 0, 0, 0, 0, 0, 0, 0],
+        missiles: [0, 0, 0, 0, 0, 0, 0, 0],
         walls: [0, 0, 0, 0]
       };
       this._frame.write(x, y, player);

@@ -1,7 +1,7 @@
 !function(exports) {
 
   function One(network) {
-    this._network = network || new FeedForward([26, 26, 24, 21]);
+    this._network = network || new FeedForward([42, 42, 32, 21]);
     this._feedback = [0, 0, 0, 0];
   };
 
@@ -9,7 +9,10 @@
     var inputs = [
       0, 0, 0, 0, 0, 0, 0, 0,
       0, 0, 0, 0, 0, 0, 0, 0,
-      0, 0, 0, 0, 0, 0
+      0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0,
+      0, 0
     ].concat(this._feedback);
 
     for (var i = 0; i < 8; i++) {
@@ -17,15 +20,23 @@
     }
 
     for (i = 0; i < 8; i++) {
-      inputs[8 + i] = sensors.players[i] / 25;
+      inputs[8 + i] = sensors.allies[i] / 25;
+    }
+
+    for (i = 0; i < 8; i++) {
+      inputs[16 + i] = sensors.enemies[i] / 25;
+    }
+
+    for (i = 0; i < 8; i++) {
+      inputs[24 + i] = sensors.missiles[i] / 25;
     }
 
     for (i = 0; i < 4; i++) {
-      inputs[16 + i] = sensors.walls[i] / 25;
+      inputs[32 + i] = sensors.walls[i] / 25;
     }
 
-    inputs[20] = sensors.resource / 100;
-    inputs[21] = sensors.ammo / 10;
+    inputs[36] = sensors.resource / 100;
+    inputs[37] = sensors.ammo / 10;
 
     var outputs = this._network.process(inputs);
 
@@ -41,7 +52,7 @@
       }
     }
 
-    this._feedback = outputs.slice(17, 21);
+    this._feedback = outputs.slice(17);
 
     if (maxIndex < 8) {
       return Universe.moveCommand(maxIndex);

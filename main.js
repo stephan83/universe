@@ -1,7 +1,7 @@
 !function() {
 
-  var NUM_PLAYERS = 50;
-  var NUM_LESS = 0;
+  var NUM_PLAYERS = 30;
+  var NUM_LESS = 30;
   var NUM_BEST = 10;
   var BEST_EXPIRES = 1000;
 
@@ -17,16 +17,13 @@
   for (i = 0; i < NUM_PLAYERS + NUM_LESS; i++) {
     universe.addResource(50 + Math.ceil(Math.random() * 50));
   }
-  for (i = 0; i < NUM_LESS; i++) {
-    universe.addPlayer('player', new Brains.Less());
-  }
 
   // Add random players
   for (i = 0; i < NUM_PLAYERS; i++) {
-    universe.addPlayer('player', new Brains.One());
+    universe.addPlayer(0, new Brains.One());
   }
   for (i = 0; i < NUM_LESS; i++) {
-    universe.addPlayer('player', new Brains.Less());
+    universe.addPlayer(1, new Brains.Less());
   }
 
   var lastTime;
@@ -130,9 +127,9 @@
             brain = brain1.mutate();
           }
         }
-        universe.addPlayer('player', brain || new Brains.One());
+        universe.addPlayer(0, brain || new Brains.One());
       } else {
-        universe.addPlayer('player', new Brains.Less());
+        universe.addPlayer(1, new Brains.Less());
       }
     }
   };
@@ -154,6 +151,16 @@
 
   document.getElementById('zoomIn').addEventListener('click', function() {
     universe.setZoom(Math.round(universe.getZoom() + 1));
+    universe.render();
+  });
+
+  document.getElementById('slower').addEventListener('click', function() {
+    universe.setCycleTimeout(universe.getCycleTimeout() + 20);
+    universe.render();
+  });
+
+  document.getElementById('faster').addEventListener('click', function() {
+    universe.setCycleTimeout(universe.getCycleTimeout() - 20);
     universe.render();
   });
 

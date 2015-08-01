@@ -10,30 +10,30 @@
   };
 
   Less.prototype.loop = function(sensors) {
-    var playerSensors = sensors.players || [];
+    var enemiesSensors = sensors.enemies;
 
     var order = [0, 1, 2, 3, 4, 5, 6, 7];
     shuffle(order);
 
-    var highestPlayerSensorVal = -Infinity;
-    var highestPlayerSensorDir;
-    var lowestPlayerSensorVal = Infinity;
-    var lowestPlayerSensorDir;
+    var highestEnemySensorVal = -Infinity;
+    var highestEnemySensorDir;
+    var lowestEnemySensorVal = Infinity;
+    var lowestEnemySensorDir;
 
     for (var i = 0; i < order.length; i++) {
       var j = order[i];
-      var value = playerSensors[j] || 0;
-      if (value > highestPlayerSensorVal) {
-        highestPlayerSensorVal = value;
-        highestPlayerSensorDir = j;
+      var value = enemiesSensors[j];
+      if (value > highestEnemySensorVal) {
+        highestEnemySensorVal = value;
+        highestEnemySensorDir = j;
       }
-      if (value < lowestPlayerSensorVal) {
-        lowestPlayerSensorVal = value;
-        lowestPlayerSensorDir = j;
+      if (value < lowestEnemySensorVal) {
+        lowestEnemySensorVal = value;
+        lowestEnemySensorDir = j;
       }
     }
 
-    var resourceSensors = sensors.resources || [];
+    var resourceSensors = sensors.resources;
 
     var highestResourceSensorVal = -Infinity;
     var highestResourceSensorDir;
@@ -42,7 +42,7 @@
 
     for (var i = 0; i < order.length; i++) {
       var j = order[i];
-      var value = resourceSensors[j] || 0;
+      var value = resourceSensors[j];
       if (value > highestResourceSensorVal) {
         highestResourceSensorVal = value;
         highestResourceSensorDir = j;
@@ -55,19 +55,19 @@
 
     var critical = sensors.resource <= 60;
 
-    if (highestPlayerSensorVal > 0 && sensors.ammo >= 5 && !critical) {
-      if (highestPlayerSensorVal > 10) {
-        return Universe.fireCommand((highestPlayerSensorDir + 4) % 8);
+    if (highestEnemySensorVal > 0 && sensors.ammo >= 5 && !critical && !sensors.allies[highestEnemySensorDir]) {
+      if (highestEnemySensorVal > 10) {
+        return Universe.fireCommand(highestEnemySensorDir);
       }
-      return Universe.moveCommand((highestPlayerSensorDir + 4) % 8);
+      return Universe.moveCommand(highestEnemySensorDir);
     } else if (highestResourceSensorVal > 0 && critical) {
-      return Universe.moveCommand((highestResourceSensorDir + 4) % 8);
-    } else if (critical && highestPlayerSensorVal > 0) {
-      return Universe.moveCommand((lowestPlayerSensorDir + 4) % 8);
+      return Universe.moveCommand(highestResourceSensorDir);
+    } else if (critical && highestEnemySensorVal > 0) {
+      return Universe.moveCommand(lowestEnemySensorDir);
     } else if (highestResourceSensorVal > 0) {
-      return Universe.moveCommand((highestResourceSensorDir + 4) % 8);
-    } else if (highestPlayerSensorVal > 0 && sensors.resource > 80) {
-      return Universe.moveCommand((highestPlayerSensorVal + 4) % 8);
+      return Universe.moveCommand(highestResourceSensorDir);
+    } else if (highestEnemySensorVal > 0 && sensors.resource > 80) {
+      return Universe.moveCommand(highestEnemySensorDir);
     } else if (Math.random() < 0.2) {
       return Universe.moveCommand(Math.floor(Math.random() * 8));
     }

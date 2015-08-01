@@ -29,7 +29,7 @@
     missiles.push({
       direction: dir,
       energy: this._initialEnergy,
-      emitter: player.id
+      emitter: player
     });
 
     this._frame.write(startX, startY, missiles);
@@ -57,16 +57,19 @@
           if (player) {
             player.resource -= missile.energy;
 
-            scores[missile.emitter] = scores[missile.emitter] || 0;
-            scores[missile.emitter] += missile.energy;
+            scores[missile.emitter.id] = scores[missile.emitter.id] || 0;
+
+            if (missile.emitter.team === player.team) {
+              scores[missile.emitter.id] = Math.max(0, scores[missile.emitter.id] - missile.energy);
+            } else {
+              scores[missile.emitter.id] += missile.energy;
+            }
 
             if (player.resource < 1) {
               players.getFrame().remove(destX, destY);
             } else {
-              player.sensors.missiles = player.sensors.missiles || [];
               var sensor = player.sensors.missiles;
-              sensor[missiles.direction] = sensor[missiles.direction] || 0;
-              sensor[missiles.direction] += missile.energy;
+              sensor[(missiles.direction + 4) % 8] += missile.energy;
               players.getFrame().write(destX, destY, player);
             }   
           } else {
