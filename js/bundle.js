@@ -492,14 +492,17 @@ universe.onLogic = function() {
 
   if (universe.getCycle() % 10 === 0 || universe.getCycle() === 1) {
     var html = '<div>C: ' + cycle + '; CPS: ' + (cyclesPerSecond ? cyclesPerSecond.toFixed(0) : '-') +  '</div>';
+    html += "<hr>";
     html += '<div id="teams">';
 
     universe.getTeams().forEach(function(team, index) {
       html += '<div class="team">';
       html += '<div>' + team.name + '</div>';
+      html += "<hr>";
       team.best.forEach(function(player) {
         html += '<div>S: ' + player.score + '; K: ' + player.kills +'; ID: ' + player.id + '</div>';
       });
+      html += "<hr>";
       team.players.forEach(function(player) {
         html += '<div>S: ' + player.score + '; K: ' + player.kills +'; ID: ' +player.id + '</div>';
       });
