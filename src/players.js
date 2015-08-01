@@ -47,6 +47,7 @@ Players.prototype.add = function(x, y, team, brain) {
       walls: [0, 0, 0, 0]
     },
     score: 0,
+    kills: 0,
     age: 0,
     bestTime: 0
   };

@@ -18,7 +18,7 @@ var STRAIGHT_DIRECTIONS = [
 var MISSILES_INITIAL_ENERGY = 15;
 var MISSILES_COST = 5;
 
-var INITIAL_ZOOM = 3;
+var INITIAL_ZOOM = 2;
 var INITIAL_VIEW_X = 0;
 var INITIAL_VIEW_Y = 0;
 
@@ -40,6 +40,9 @@ function playerColorizer(player) {
   var intensity = 55 + player.resource * 2;
   if (player.team === 0) {
     return 'rgb(' + intensity + ',0,' + intensity + ')';
+  }
+  if (player.team === 1) {
+    return 'rgb(' + intensity + ',' + intensity + ',0)';
   }
   return 'rgb(0,' + intensity + ',' + intensity + ')';
 }
