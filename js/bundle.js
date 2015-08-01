@@ -91,16 +91,16 @@ var FeedForward = require('../feed_forward');
 var Universe = require('../universe');
 
 function One(network) {
-  this._network = network || new FeedForward.HardMax([42, 42, 32, 21]);
+  this._network = network || new FeedForward.HardMax([22, 22, 20, 17]);
   this._inputs = new Float32Array([
     0, 0, 0, 0, 0, 0, 0, 0, // Resources sensors
-    0, 0, 0, 0, 0, 0, 0, 0, // Allies sensors
+    //0, 0, 0, 0, 0, 0, 0, 0, // Allies sensors
     0, 0, 0, 0, 0, 0, 0, 0, // Enemies sensors
-    0, 0, 0, 0, 0, 0, 0, 0, // Missiles sensors
+    //0, 0, 0, 0, 0, 0, 0, 0, // Missiles sensors
     0, 0, 0, 0,             // Wall sensors
     0,                      // Resource
     0,                      // Ammo
-    0, 0, 0, 0              // Feeback
+    //0, 0, 0, 0              // Feeback
   ]);
 };
 
@@ -112,15 +112,15 @@ One.prototype.loop = function(sensors) {
   for (var i = 0; i < 8; i++) {
     inputs[j++] = sensors.resources[i] / 25;
   }
-  for (i = 0; i < 8; i++) {
+  /*for (i = 0; i < 8; i++) {
     inputs[j++] = sensors.allies[i] / 25;
-  }
+  }*/
   for (i = 0; i < 8; i++) {
     inputs[j++] = sensors.enemies[i] / 25;
   }
-  for (i = 0; i < 8; i++) {
+  /*for (i = 0; i < 8; i++) {
     inputs[j++] = sensors.missiles[i] / 25;
-  }
+  }*/
   for (i = 0; i < 4; i++) {
     inputs[j++] = sensors.walls[i] / 25;
   }
@@ -134,9 +134,9 @@ One.prototype.loop = function(sensors) {
 
   // Save output feedback for next loop
 
-  for (i = outputs.length - 4; i < outputs.length; i++) {
+  /*for (i = outputs.length - 4; i < outputs.length; i++) {
     inputs[j++] = outputs[i];
-  }
+  }*/
 
   // Find highest non feedback output
 
@@ -536,7 +536,7 @@ document.getElementById('zoomIn').addEventListener('click', function() {
 
 document.getElementById('speed').addEventListener('change', function(event) {
   event.stopPropagation();
-  universe.setCycleTimeout(event.target.value);
+  universe.setCycleTimeout(100 - event.target.value);
   universe.render();
 });
 

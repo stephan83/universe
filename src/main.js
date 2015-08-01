@@ -80,7 +80,7 @@ document.getElementById('zoomIn').addEventListener('click', function() {
 
 document.getElementById('speed').addEventListener('change', function(event) {
   event.stopPropagation();
-  universe.setCycleTimeout(event.target.value);
+  universe.setCycleTimeout(100 - event.target.value);
   universe.render();
 });
 

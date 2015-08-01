@@ -72,19 +72,41 @@ function Neat(numInputs, numOutputs, nodeGenes, connGenes) {
   }
 }
 
-/*Neat.prototype.process = function(inputs) {
+Neat.prototype.process = function(inputs) {
   var nodeValues = [];
 
-  for (var i = 0; i < this._nodeGenes.length; i++) {
+  for (var i = 0; i < this._nodeGenes[0].length; i++) {
+    var node = this._nodeGenes[0][i];
+    nodeValues[node[0]] = inputs[i];
+  }
+
+  for (i = 1; i < this._nodeGenes.length; i++) {
     var layer = this._nodeGenes[i];
     for (var j = 0; j < layer.length; j++) {
-      var node = layer[j];
+      node = layer[j];
       var nodeInputs = this._nodeInputs[node[0]];
-      var nodeOutputs = this._nodeInputs[node[0]];
       var sum = 0;
+
+      for (var k = 0; k < nodeInputs.length; k++) {
+        var inputConn = nodeInputs[k];
+        if (inputConn.enabled) {
+          sum += (nodeValues[inputConn.input] || 0) * inputConn.weight;
+        }
+      }
+
+      nodeValues[node[0]] = Math.max(0, sum);
     }
   }
-};*/
+
+  var outputs = [];
+
+  for (i = 0; i < this._nodeGenes[this._nodeGenes.length - 1].length; i++) {
+    node = layer[i];
+    outputs[i] = nodeValues[node[0]] || 0;
+  }
+
+  return outputs;
+};
 
 Neat.prototype.findConnection = function(input, output) {
   var conns = this._nodeOutputs[input];
