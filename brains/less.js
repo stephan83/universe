@@ -73,7 +73,11 @@
     }
   };
 
-  Less.prototype.clone = function() {
+  Less.prototype.mutate = function() {
+    return new Less();
+  };
+
+  Less.mate = function() {
     return new Less();
   };
 

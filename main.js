@@ -1,10 +1,5 @@
 !function() {
 
-  var NUM_PLAYERS = 30;
-  var NUM_LESS = 30;
-  var NUM_BEST = 10;
-  var BEST_EXPIRES = 1000;
-
   var canvas = document.getElementById('universe');
 
   canvas.width = window.innerWidth;
@@ -13,31 +8,20 @@
   var ctx = canvas.getContext('2d');
   var universe = new Universe(ctx, map);
 
-  // Add random resource
-  for (i = 0; i < NUM_PLAYERS + NUM_LESS; i++) {
-    universe.addResource(50 + Math.ceil(Math.random() * 50));
-  }
+  // Add teams
+  universe.addTeam(Brains.One, 20, 5, 2000, 0.1, 0.1);
+  universe.addTeam(Brains.Less, 20, 5, 2000, 1, 0);
 
-  // Add random players
-  for (i = 0; i < NUM_PLAYERS; i++) {
-    universe.addPlayer(0, new Brains.One());
-  }
-  for (i = 0; i < NUM_LESS; i++) {
-    universe.addPlayer(1, new Brains.Less());
+  // Add random resource
+  for (i = 0; i < 40; i++) {
+    universe.addResource(50 + Math.ceil(Math.random() * 50));
   }
 
   var lastTime;
   var lastCycle;
   var stats = document.getElementById('stats');
-  var best = [];
 
   universe.onLogic = function() {
-    var scores = universe.getScores();  
-    var oneScore = 0;
-    var lessScore = 0;
-    var alive = [];
-    var aliveOne = 0;
-
     var now = Date.now();
     var cycle = universe.getCycle();
 
@@ -49,88 +33,22 @@
     lastTime = now;
     lastCycle = cycle;
 
-    universe._players.getFrame().each(function(x, y, player) {
-      var score = scores[player.id];
-      var ai = universe.getAi(player.id);
-      var data = {
-        id: player.id,
-        score: score,
-        ai: ai,
-        time: universe.getCycle(),
-        one: ai instanceof Brains.One
-      };
-      alive.push(data);
-      if (ai instanceof Brains.One) {
-        aliveOne++;
-        oneScore += score;
-        for (var i = 0; i < best.length; i++) {
-          if (player.id === best[i].id) {
-            best.splice(i, 1);
-            break;
-          }
-        }
-        for (var i = 0; i < best.length; i++) {
-          if (score >= best[i].score) {
-            break;
-          }
-        }
-        best.splice(i, 0, data);
-        if (best.length > NUM_BEST) {
-          best.pop();
-        }
-      } else { 
-        lessScore += score;
-      }
-    });
-
-    best = best.filter(function(data) {
-      return data.time > universe.getCycle() - BEST_EXPIRES;
-    });
+    var html = '<div>C: ' + cycle + '; CPS: ' + (cyclesPerSecond ? cyclesPerSecond.toFixed(0) : '-') +  '</div>';
 
     if (universe.getCycle() % 10 === 0 || universe.getCycle() === 1) {
-      alive.sort(function(a, b) {
-        return b.score - a.score;
+      universe.getTeams().forEach(function(team, index) {
+        html += '<div>-------------------------------</div>';
+        html += '<div>TEAM ' + index + '</div>';
+        team.best.forEach(function(player) {
+          html += '<div>S: ' + player.score + '; ID: ' + player.id + '</div>';
+        });
+        html += '<div>-------------------------------</div>';
+        team.players.forEach(function(player) {
+          html += '<div>S: ' + player.score + '; ID: ' + player.id + '</div>';
+        });
       });
 
-      var html = '<div>C: ' + cycle + '; CPS: ' + (cyclesPerSecond ? cyclesPerSecond.toFixed(0) : '-') +  '</div>';
-
-      html += '<div>-------------------------------</div>';
-
-      for (var i = 0; i < best.length; i++) {
-        html += '<div>S: ' + best[i].score + '; T: ' + best[i].time + '; ID: ' + best[i].id + '</div>';
-      }
-
-      html += '<div>-------------------------------</div>';
-
-      html += '<div>O: ' + oneScore + ', L: ' + lessScore + '; R: ' + (oneScore / lessScore).toFixed(2) + '</div>';
-
-      for (var i = 0; i < alive.length; i++) {
-        html += '<div>S: ' + alive[i].score + '; ONE: ' + alive[i].one + '; ID: ' + alive[i].id + '</div>';
-      }
-
       stats.innerHTML = html;
-    }
-
-    for (i = 0; i < NUM_PLAYERS + NUM_LESS - alive.length; i++) {
-      if (aliveOne < NUM_PLAYERS) {
-        aliveOne++;
-        if (Math.random() < 0.1) {
-          var brain = new Brains.One();
-        } else if (best.length > 1) {
-          var brain1 = best[Math.floor(Math.random() * best.length)].ai;
-          do {
-            var brain2 = best[Math.floor(Math.random() * best.length)].ai;
-          } while (brain1 !== brain2)
-          if (Math.random() < 0.2) {
-            brain = Brains.One.mate(brain1, brain2);
-          } else {
-            brain = brain1.mutate();
-          }
-        }
-        universe.addPlayer(0, brain || new Brains.One());
-      } else {
-        universe.addPlayer(1, new Brains.Less());
-      }
     }
   };
 

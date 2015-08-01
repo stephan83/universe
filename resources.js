@@ -37,7 +37,7 @@
     var resource = this._frame.read(x, y);
 
     if (resource) {
-      player.resource = Math.max(100, player.resource + resource);
+      player.resource = Math.min(100, player.resource + resource);
       this._frame.remove(x, y);
       this._addResource(resource);
       return;

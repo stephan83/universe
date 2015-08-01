@@ -33,7 +33,7 @@
   // Used to colorize the player's squares
   function playerColorizer(player) {
     var intensity = 55 + player.resource * 2;
-    if (player.ai instanceof Brains.One) {
+    if (player.team === 0) {
       return 'rgb(' + intensity + ',0,' + intensity + ')';
     }
     return 'rgb(0,' + intensity + ',' + intensity + ')';
@@ -57,8 +57,7 @@
     this._viewY = INITIAL_VIEW_Y;
     this._cycleTimeout = CYCLE_TIMEOUT;
 
-    this._scores = {};
-    this._aiMap = {};
+    this._teams = [];
 
     this._cycle = 0;
     this._lastRenderTime = 0;
@@ -78,10 +77,8 @@
     this._resources.setAddResource(this.addResource.bind(this));
     this._players.setWallsFrame(this._walls.getFrame());
     this._players.setMissiles(this._missiles);
-    this._players.setScores(this._scores);
     this._missiles.setPlayers(this._players);
     this._missiles.setWallsFrame(this._walls.getFrame());
-    this._missiles.setScores(this._scores);
 
     this._floor = [];
     this._initMap(map);
@@ -123,12 +120,8 @@
     return this._cycle;
   };
 
-  Universe.prototype.getScores = function() {
-    return this._scores;
-  };
-
-  Universe.prototype.getAi = function(id) {
-    return this._aiMap[id];
+  Universe.prototype.getTeams = function() {
+    return this._teams;
   };
 
   Universe.prototype.getTotalPlayers = function() {
@@ -187,15 +180,18 @@
     this._resources.add(x, y, amount);
   };
 
-  Universe.prototype.addPlayer = function(team, ai) {
-    do {
-      var rand = Math.floor(Math.random() * this._floor.length);
-      var cell = this._floor[rand];
-      var x = cell[0];
-      var y = cell[1];
-    } while(this._resources.getFrame().read(x, y) ||
-            this._players.getFrame().read(x, y))
-    this._aiMap[this._players.add(x, y, team, ai)] = ai;
+  Universe.prototype.addTeam = function(brain, size, bestSize, maxBestTime, newRate, mateRate) {
+    this._teams.push({
+      brain: brain,
+      size: size,
+      bestSize: bestSize,
+      maxBestTime: maxBestTime,
+      newRate: newRate,
+      mateRate: mateRate,
+      score: 0,
+      players: [],
+      best: []
+    });
   };
 
   Universe.moveCommand = Players.moveCommand;
@@ -225,17 +221,66 @@
 
   Universe.prototype._logic = function() {
     this._walls.loop(this._players.getFrame());
-
     this._resources.loop();
-
     for (i = 0; i < 2; i++) {
-      this._missiles.loop(this._walls.getFrame(), this._players, this._scores);
+      this._missiles.loop();
     }
-    
     this._players.loop();
 
-    this._cycle++;
+    this._teams.forEach(function(team) {
+      team.score = 0;
+      team.players = [];
+      var cycle = this._cycle;
+      team.best = team.best.filter(function(player) {
+        return player.bestTime >= cycle - team.maxBestTime;
+      });
+    }.bind(this));
 
+    this._players.getFrame().each(function(x, y, player) {
+      var team = this._teams[player.team];
+      team.players.push(player);
+      team.score += player.score;
+      for (var i = 0; i < team.best.length; i++) {
+        if (player.id === team.best[i].id) {
+          team.best.splice(i, 1);
+          break;
+        }
+      }
+      for (i = 0; i < team.best.length; i++) {
+        if (player.score >= team.best[i].score) {
+          break;
+        }
+      }
+      player.bestTime = this._cycle;
+      team.best.splice(i, 0, player);
+      if (team.best.length > 5) {
+        team.best.pop();
+      }
+    }.bind(this));
+
+    this._teams.forEach(function(team, index) {
+      while (team.players.length < team.size) {
+        if (Math.random() < team.newRate) {
+          var brain = new team.brain();
+        } else if (team.best.length > 1) {
+          var brain1 = team.best[Math.floor(Math.random() * team.best.length)].brain;
+          do {
+            var brain2 = team.best[Math.floor(Math.random() * team.best.length)].brain;
+          } while (brain1 !== brain2)
+          if (Math.random() < team.mateRate) {
+            brain = team.brain.mate(brain1, brain2);
+          } else {
+            brain = brain1.mutate();
+          }
+        }
+        this._addPlayer(index, brain || new team.brain());
+      }
+      team.players.sort(function(a, b) {
+        return b.score - a.score;
+      });
+    }.bind(this));
+
+    this._cycle++;
     this.onLogic && this.onLogic();
   };
 
@@ -257,6 +302,17 @@
     } else {
       window.requestAnimationFrame(this._mainLoop.bind(this));
     }
+  };
+
+  Universe.prototype._addPlayer = function(team, brain) {
+    do {
+      var rand = Math.floor(Math.random() * this._floor.length);
+      var cell = this._floor[rand];
+      var x = cell[0];
+      var y = cell[1];
+    } while(this._resources.getFrame().read(x, y) ||
+            this._players.getFrame().read(x, y))
+    this._teams[team].players.push(this._players.add(x, y, team, brain));
   };
 
   exports.Universe = Universe;

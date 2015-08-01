@@ -30,15 +30,13 @@
     this._missiles = value;
   };
 
-  Players.prototype.setScores = function(value) {
-    this._scores = value;
-  };
-
-  Players.prototype.add = function(x, y, team, ai) {
+  Players.prototype.add = function(x, y, team, brain) {
     var id = this._idCount++;
 
-    this._frame.write(x, y, {
+    var player = {
+      id: id,
       team: team,
+      brain: brain,
       resource: 100,
       ammo: 10,
       sensors: {
@@ -48,12 +46,14 @@
         missiles: [0, 0, 0, 0, 0, 0, 0, 0],
         walls: [0, 0, 0, 0]
       },
-      ai: ai,
+      score: 0,
       age: 0,
-      id: id
-    });
+      bestTime: 0
+    };
 
-    return id;
+    this._frame.write(x, y, player);
+
+    return player;
   };
 
   Players.prototype.move = function(x, y, dir) {
@@ -119,8 +119,7 @@
 
   Players.prototype._loop2 = function(x, y, player) {
     player.resource--;
-    this._scores[player.id] = this._scores[player.id] || 0;
-    this._scores[player.id]++;
+    player.score++;
 
     if (player.resource < 1 ||
         player.age >= (1000 + Math.ceil(Math.random() * 10))) {
@@ -143,7 +142,7 @@
     sensors.resource = player.resource;
     sensors.ammo = player.ammo;
     
-    var command = player.ai.loop(sensors);
+    var command = player.brain.loop(sensors);
 
     if (command) {
       switch (command.action) {

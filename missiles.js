@@ -23,10 +23,6 @@
     this._players = value;
   };
 
-  Missiles.prototype.setScores = function(value) {
-    this._scores = value;
-  };
-
   Missiles.prototype.fire = function(player, x, y, dir) {
     var direction = this._directions[dir];
     var startX = x + direction[0];
@@ -69,12 +65,10 @@
           if (player) {
             player.resource -= missile.energy;
 
-            this._scores[missile.emitter.id] = this._scores[missile.emitter.id] || 0;
-
             if (missile.emitter.team === player.team) {
-              this._scores[missile.emitter.id] = Math.max(0, this._scores[missile.emitter.id] - missile.energy);
+              missile.emitter.score = Math.max(0, missile.emitter.score - missile.energy);
             } else {
-              this._scores[missile.emitter.id] += missile.energy;
+              missile.emitter.score += missile.energy;
             }
 
             if (player.resource < 1) {

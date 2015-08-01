@@ -1,7 +1,7 @@
 !function(exports) {
 
   function One(network) {
-    this._network = network || new FeedForward([42, 42, 32, 21]);
+    this._network = network || new FeedForward([42, 21]);
     this._inputs = [
       0, 0, 0, 0, 0, 0, 0, 0, // Resources sensors
       0, 0, 0, 0, 0, 0, 0, 0, // Allies sensors
