@@ -1,49 +1,63 @@
 !function(exports) {
 
+  // A feed forward network, using hardmax.
+
   function randomWeight() {
     return Math.random() < 0.5 ? Math.random() : -Math.random();
   }
 
-  function FeedForward(sizes, _data) {
-    this._sizes = sizes.slice();
-    if (_data) {
-      this._data = _data;
-    } else {
-      var length = 0;
-      for (var i = 1; i < sizes.length; i++) {
+  function FeedForward(sizes, data) {
+    this._sizes = new Float32Array(sizes);
+
+    var dataLength = 0;
+    var ioLength = 0;
+    for (var i = 0; i < sizes.length; i++) {
+      ioLength += sizes[i];
+      if (i > 0) {
         length += (sizes[i - 1] + 1) * sizes[i];
       }
-      this._data = _data || new Float32Array(length);
+    }
+
+    if (data) {
+      this._data = new Float32Array(data);
+    } else {
+      this._data = new Float32Array(length);
       for (var i = 0; i < length; i++) {
         this._data[i] = randomWeight();
       }
     }
+
+    this._io = new Float32Array(ioLength);
+    this._outputs = this._io.subarray(0, sizes[sizes.length - 1]);
   }
 
   FeedForward.prototype.marshal = function() {
     return {
-      sizes: this._sizes,
+      sizes: Array.prototype.slice.call(this._sizes) ,
       data: Array.prototype.slice.call(this._data) 
     };
   };
 
+  // NOTE: If you need to save the outputs, create a copy of the result because
+  // the returned subarray's buffer is reused. This is to avoid allocating
+  // memory unnecessary.
   FeedForward.prototype.process = function(inputs) {
-    var outputs;
-    var l = 0;
-    for (var i = 1; i < this._sizes.length; i++) {
-      var numInputs = this._sizes[i - 1];
-      var numNeurons = this._sizes[i];
-      var outputs = [];
-      for (var j = 0; j < numNeurons; j++) {
-        var sum = this._data[l++];
-        for (var k = 0; k < numInputs; k++) {
-          sum += this._data[l++] * inputs[k];
+    this._io.set(inputs);
+    var dataIndex = 0, ioIndex = 0;
+    var numInputs, numNeurons, sum, i, j, k;
+    for (i = 1; i < this._sizes.length; i++) {
+      numInputs = this._sizes[i - 1];
+      numNeurons = this._sizes[i];
+      for (j = 0; j < numNeurons; j++) {
+        sum = this._data[dataIndex++];
+        for (k = 0; k < numInputs; k++) {
+          sum += this._data[dataIndex++] * this._io[ioIndex + k];
         }
-        outputs[j] = Math.max(0, sum);
+        this._io[ioIndex + numInputs + j] = Math.max(0, sum);
       }
-      inputs = outputs;
+      ioIndex += numInputs;
     }
-    return outputs;
+    return this._outputs;
   };
 
   FeedForward.prototype.mutate = function() {
@@ -55,7 +69,7 @@
   };
 
   FeedForward.unmarshal = function(js) {
-    return new FeedForward(js.sizes.slice(), new Float32Array(js.data));
+    return new FeedForward(js.sizes, js.data);
   };
 
   FeedForward.mate = function(a, b) {
