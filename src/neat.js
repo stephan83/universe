@@ -1,3 +1,5 @@
+// Neat with feed forward nodes only
+
 var NODE_INPUT = 0;
 var NODE_OUTPUT = 1;
 var NODE_HIDDEN = 2;
@@ -39,8 +41,11 @@ function Neat(numInputs, numOutputs, nodeGenes, connGenes) {
     this._nodeGenes.push(outputNodes);
   }
 
+  this._numNodeGenes = 0;
+
   for (i = 0; i < this._nodeGenes.length; i++) {
     var layer = this._nodeGenes[i];
+    this._numNodeGenes += layer.length;
     for (j = 0; j < layer.length; j++) {
       var node = layer[j];
       this._nodeToLayerMap[node[0]] = layer;
@@ -83,7 +88,7 @@ Neat.prototype.process = function(inputs) {
         }
       }
 
-      nodeValues[node[0]] = Math.max(0, sum);
+      nodeValues[node[0]] = 1 / (1 + Math.exp(-sum));
     }
   }
 
@@ -179,6 +184,7 @@ Neat.prototype.addNode = function(input, output, weight1, weight2) {
   conn.enabled = false;
   this.addConnection(input, nodeId, weight1);
   this.addConnection(nodeId, output, weight2);
+  this._numNodeGenes++;
 
   return true;
 };
@@ -201,37 +207,62 @@ Neat.prototype.clone = function() {
   return new Neat(this._numInputs, this._numOutputs, nodes, connections);
 }
 
+Neat.prototype._randomInputOutput = function() {
+  var len = this._nodeGenes.length - 1;
+  var numOutputs = this._nodeGenes[len].length;
+  var numPrev = 0;
+  var inputPos = Math.floor(Math.random() * (this._numNodeGenes - numOutputs));
+  for (var i = 0; numPrev <= inputPos; i++) {
+    var layer = this._nodeGenes[i];
+    numPrev += layer.length;
+  }
+  var input = layer[Math.floor(Math.random() * layer.length)][0];
+
+  var outputPos = numPrev + Math.floor(Math.random() * (this._numNodeGenes - numPrev));
+
+  for (; numPrev <= outputPos; i++) {
+    layer = this._nodeGenes[i];
+    numPrev += layer.length;
+  }
+  var output = layer[Math.floor(Math.random() * layer.length)][0];
+
+  return [input, output];
+}
+
 Neat.prototype.mutate = function() {
   var clone = this.clone();
 
-  for (var j = 0; j < (Math.ceil(this._connGenes.length / 50) || 1); j++) {
-    if (Math.random() < 0.9) {
-      // Add connection
-      var i = 0;
-      do {
-        var a = Math.floor(Math.random() * (this._nodeGenes.length - 1));
-        var b = Math.floor(Math.random() * this._nodeGenes[a].length);
-        var from = this._nodeGenes[a][b][0];
-        var c = a + 1 + Math.floor(Math.random() * (this._nodeGenes.length - a - 1));
-        var d = Math.floor(Math.random() * this._nodeGenes[c].length);
-        var to = this._nodeGenes[c][d][0];
-      } while(this.findConnection(from, to) && i++ < 5);
+  for (var i = 0; i < clone._connGenes.length; i++) {
+    if (clone._connGenes[i].enabled && Math.random() < 0.1) {
+      clone._connGenes[i].weight += randomWeight();
+    }
+  }
 
+  if (Math.random() < 0.9) {
+    // Add connection
+    i = 0;
+    do {
+      var inputOutput = this._randomInputOutput();
+      var from = inputOutput[0];
+      var to = inputOutput[1];
+      var conn = this.findConnection(from, to);
+    } while(conn && i++ < 100);
+
+    if (!conn) {
       clone.addConnection(from, to, randomWeight());
-    } else {
-      // Add node
-      i = 0;
-      do {
-        a = Math.floor(Math.random() * (this._nodeGenes.length - 1));
-        b = Math.floor(Math.random() * this._nodeGenes[a].length);
-        from = this._nodeGenes[a][b][0];
-        c = a + 1 + Math.floor(Math.random() * (this._nodeGenes.length - a - 1));
-        d = Math.floor(Math.random() * this._nodeGenes[c].length);
-        to = this._nodeGenes[c][d][0];
-        var conn = this.findConnection(from, to);
-      } while((!conn || conn.disabled) && i++ < 5);
+    }
+  } else {
+    // Add node
+    i = 0;
+    do {
+      var inputOutput = this._randomInputOutput();
+      var from = inputOutput[0];
+      var to = inputOutput[1];
+      var conn = this.findConnection(from, to);
+    } while((!conn || conn.disabled) && i++ < 100);
 
-      clone.addNode(from, to, randomWeight(), randomWeight());
+    if (conn) {
+      clone.addNode(from, to, 1, conn.weight);
     }
   }
 
@@ -258,6 +289,35 @@ Neat.prototype.marshal = function() {
     connections: connections
   };
 }
+
+Neat.prototype.toGraph = function() {
+  var nodes = [];
+  var edges = [];
+
+  this._nodeGenes.forEach(function(layer, x) {
+    layer.forEach(function(node, y) {
+      nodes.push({
+        id: 'n' + node[0],
+        x: x * 10,
+        y: y,
+        size: 1
+      });
+    });
+  });
+
+  this._connGenes.forEach(function(conn) {
+    if (conn.enabled) {
+      edges.push({
+        id: 'e' + conn.innovation,
+        source: 'n' + conn.input,
+        target: 'n' + conn.output,
+        label: conn.weight.toFixed(2)
+      });
+    }
+  });
+
+  return {nodes: nodes, edges: edges}; 
+};
 
 Neat.unmarshal = function(obj) {
   var nodes = obj.nodes.map(function(layer) {

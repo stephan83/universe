@@ -89,16 +89,16 @@ var Neat = require('../neat');
 var Universe = require('../universe');
 
 function Neato(network) {
-  this._network = network || new Neat(22, 17);
+  this._network = network || new Neat(42, 21).mutate();
   this._inputs = new Float32Array([
     0, 0, 0, 0, 0, 0, 0, 0, // Resources sensors
-    //0, 0, 0, 0, 0, 0, 0, 0, // Allies sensors
+    0, 0, 0, 0, 0, 0, 0, 0, // Allies sensors
     0, 0, 0, 0, 0, 0, 0, 0, // Enemies sensors
-    //0, 0, 0, 0, 0, 0, 0, 0, // Missiles sensors
+    0, 0, 0, 0, 0, 0, 0, 0, // Missiles sensors
     0, 0, 0, 0,             // Wall sensors
     0,                      // Resource
     0,                      // Ammo
-    //0, 0, 0, 0              // Feeback
+    0, 0, 0, 0              // Feeback
   ]);
 };
 
@@ -110,15 +110,15 @@ Neato.prototype.loop = function(sensors) {
   for (var i = 0; i < 8; i++) {
     inputs[j++] = sensors.resources[i] / 25;
   }
-  /*for (i = 0; i < 8; i++) {
+  for (i = 0; i < 8; i++) {
     inputs[j++] = sensors.allies[i] / 25;
-  }*/
+  }
   for (i = 0; i < 8; i++) {
     inputs[j++] = sensors.enemies[i] / 25;
   }
-  /*for (i = 0; i < 8; i++) {
+  for (i = 0; i < 8; i++) {
     inputs[j++] = sensors.missiles[i] / 25;
-  }*/
+  }
   for (i = 0; i < 4; i++) {
     inputs[j++] = sensors.walls[i] / 25;
   }
@@ -132,9 +132,9 @@ Neato.prototype.loop = function(sensors) {
 
   // Save output feedback for next loop
 
-  /*for (i = outputs.length - 4; i < outputs.length; i++) {
+  for (i = outputs.length - 4; i < outputs.length; i++) {
     inputs[j++] = outputs[i];
-  }*/
+  }
 
   // Find highest non feedback output
 
@@ -172,6 +172,10 @@ Neato.prototype.mutate = function() {
 Neato.prototype.mate = function(partner) {
   // TODO crossover
   return new Neato(this._network.mutate());
+};
+
+Neato.prototype.toGraph = function() {
+  return this._network.toGraph();
 };
 
 module.exports = Neato;
@@ -558,10 +562,10 @@ var ctx = canvas.getContext('2d');
 var universe = new Universe(ctx, map);
 
 // Add teams
-universe.addTeam("Team HardMax", One, 30, 5, 2000, 0.1, 0.1);
+universe.addTeam("Team Less", Less, 20, 8, 5000, 1, 0);
+universe.addTeam("Team HardMax", One, 20, 8, 5000, 0.1, 0.1);
 //universe.addTeam("Team Sigmoid", Two, 20, 5, 2000, 0.1, 0.1);
-universe.addTeam("Team Neato", Neato, 30, 5, 2000, 0.1, 0.1);
-//universe.addTeam("Team Less", Less, 20, 5, 2000, 1, 0);
+universe.addTeam("Team Neato", Neato, 20, 8, 5000, 0, 0.1);
 
 // Add random resource
 for (i = 0; i < 40; i++) {
@@ -589,16 +593,16 @@ universe.onLogic = function() {
     html += "<hr>";
     html += '<div id="teams">';
 
-    universe.getTeams().forEach(function(team, index) {
+    universe.getTeams().forEach(function(team, teamIndex) {
       html += '<div class="team">';
       html += '<div>' + team.name + '</div>';
       html += "<hr>";
-      team.best.forEach(function(player) {
-        html += '<div>S: ' + player.score + '; K: ' + player.kills +'; ID: ' + player.id + '</div>';
+      team.best.forEach(function(player, playerIndex) {
+        html += '<div data-best="true" data-team="' + teamIndex + '" data-index="' + playerIndex + '">S: ' + player.score + '; K: ' + player.kills +'; ID: ' + player.id + '</div>';
       });
       html += "<hr>";
-      team.players.forEach(function(player) {
-        html += '<div>S: ' + player.score + '; K: ' + player.kills +'; ID: ' +player.id + '</div>';
+      team.players.forEach(function(player, playerIndex) {
+        html += '<div data-team="' + teamIndex + '" data-index="' + playerIndex + '">S: ' + player.score + '; K: ' + player.kills +'; ID: ' +player.id + '</div>';
       });
       html += "</div>";
     });
@@ -672,6 +676,32 @@ function resize() {
   canvas.width = rect.width;
   canvas.height = window.innerHeight;
 }
+
+var sigmaGraph = new sigma({
+  graph: graph,
+  container: 'graph',
+  settings: {
+    defaultNodeColor: '#FF0033',
+    edgeColor: '#666666'
+  }
+});
+
+document.getElementById('stats').addEventListener('click', function(event) {
+  var target = event.target;
+  var team = target.dataset.team;
+  var index = target.dataset.index;
+  var best = target.dataset.best;
+
+  if (typeof team !== 'undefined' && typeof index !== 'undefined') {
+    var team = universe.getTeams()[team];
+    var player = best ? team.best[index] : team.players[index];
+    sigmaGraph.graph.clear();
+    if (player.brain.toGraph) {
+      sigmaGraph.graph.read(player.brain.toGraph());
+    }
+    sigmaGraph.refresh();
+  }
+});
 
 // Boot
 
@@ -886,6 +916,8 @@ Missiles.prototype.loop = function() {
 module.exports = Missiles;
 
 },{"./frame":6}],10:[function(require,module,exports){
+// Neat with feed forward nodes only
+
 var NODE_INPUT = 0;
 var NODE_OUTPUT = 1;
 var NODE_HIDDEN = 2;
@@ -927,8 +959,11 @@ function Neat(numInputs, numOutputs, nodeGenes, connGenes) {
     this._nodeGenes.push(outputNodes);
   }
 
+  this._numNodeGenes = 0;
+
   for (i = 0; i < this._nodeGenes.length; i++) {
     var layer = this._nodeGenes[i];
+    this._numNodeGenes += layer.length;
     for (j = 0; j < layer.length; j++) {
       var node = layer[j];
       this._nodeToLayerMap[node[0]] = layer;
@@ -971,7 +1006,7 @@ Neat.prototype.process = function(inputs) {
         }
       }
 
-      nodeValues[node[0]] = Math.max(0, sum);
+      nodeValues[node[0]] = 1 / (1 + Math.exp(-sum));
     }
   }
 
@@ -1067,6 +1102,7 @@ Neat.prototype.addNode = function(input, output, weight1, weight2) {
   conn.enabled = false;
   this.addConnection(input, nodeId, weight1);
   this.addConnection(nodeId, output, weight2);
+  this._numNodeGenes++;
 
   return true;
 };
@@ -1089,37 +1125,62 @@ Neat.prototype.clone = function() {
   return new Neat(this._numInputs, this._numOutputs, nodes, connections);
 }
 
+Neat.prototype._randomInputOutput = function() {
+  var len = this._nodeGenes.length - 1;
+  var numOutputs = this._nodeGenes[len].length;
+  var numPrev = 0;
+  var inputPos = Math.floor(Math.random() * (this._numNodeGenes - numOutputs));
+  for (var i = 0; numPrev <= inputPos; i++) {
+    var layer = this._nodeGenes[i];
+    numPrev += layer.length;
+  }
+  var input = layer[Math.floor(Math.random() * layer.length)][0];
+
+  var outputPos = numPrev + Math.floor(Math.random() * (this._numNodeGenes - numPrev));
+
+  for (; numPrev <= outputPos; i++) {
+    layer = this._nodeGenes[i];
+    numPrev += layer.length;
+  }
+  var output = layer[Math.floor(Math.random() * layer.length)][0];
+
+  return [input, output];
+}
+
 Neat.prototype.mutate = function() {
   var clone = this.clone();
 
-  for (var j = 0; j < (Math.ceil(this._connGenes.length / 50) || 1); j++) {
-    if (Math.random() < 0.9) {
-      // Add connection
-      var i = 0;
-      do {
-        var a = Math.floor(Math.random() * (this._nodeGenes.length - 1));
-        var b = Math.floor(Math.random() * this._nodeGenes[a].length);
-        var from = this._nodeGenes[a][b][0];
-        var c = a + 1 + Math.floor(Math.random() * (this._nodeGenes.length - a - 1));
-        var d = Math.floor(Math.random() * this._nodeGenes[c].length);
-        var to = this._nodeGenes[c][d][0];
-      } while(this.findConnection(from, to) && i++ < 5);
+  for (var i = 0; i < clone._connGenes.length; i++) {
+    if (clone._connGenes[i].enabled && Math.random() < 0.1) {
+      clone._connGenes[i].weight += randomWeight();
+    }
+  }
 
+  if (Math.random() < 0.9) {
+    // Add connection
+    i = 0;
+    do {
+      var inputOutput = this._randomInputOutput();
+      var from = inputOutput[0];
+      var to = inputOutput[1];
+      var conn = this.findConnection(from, to);
+    } while(conn && i++ < 100);
+
+    if (!conn) {
       clone.addConnection(from, to, randomWeight());
-    } else {
-      // Add node
-      i = 0;
-      do {
-        a = Math.floor(Math.random() * (this._nodeGenes.length - 1));
-        b = Math.floor(Math.random() * this._nodeGenes[a].length);
-        from = this._nodeGenes[a][b][0];
-        c = a + 1 + Math.floor(Math.random() * (this._nodeGenes.length - a - 1));
-        d = Math.floor(Math.random() * this._nodeGenes[c].length);
-        to = this._nodeGenes[c][d][0];
-        var conn = this.findConnection(from, to);
-      } while((!conn || conn.disabled) && i++ < 5);
+    }
+  } else {
+    // Add node
+    i = 0;
+    do {
+      var inputOutput = this._randomInputOutput();
+      var from = inputOutput[0];
+      var to = inputOutput[1];
+      var conn = this.findConnection(from, to);
+    } while((!conn || conn.disabled) && i++ < 100);
 
-      clone.addNode(from, to, randomWeight(), randomWeight());
+    if (conn) {
+      clone.addNode(from, to, 1, conn.weight);
     }
   }
 
@@ -1146,6 +1207,35 @@ Neat.prototype.marshal = function() {
     connections: connections
   };
 }
+
+Neat.prototype.toGraph = function() {
+  var nodes = [];
+  var edges = [];
+
+  this._nodeGenes.forEach(function(layer, x) {
+    layer.forEach(function(node, y) {
+      nodes.push({
+        id: 'n' + node[0],
+        x: x * 10,
+        y: y,
+        size: 1
+      });
+    });
+  });
+
+  this._connGenes.forEach(function(conn) {
+    if (conn.enabled) {
+      edges.push({
+        id: 'e' + conn.innovation,
+        source: 'n' + conn.input,
+        target: 'n' + conn.output,
+        label: conn.weight.toFixed(2)
+      });
+    }
+  });
+
+  return {nodes: nodes, edges: edges}; 
+};
 
 Neat.unmarshal = function(obj) {
   var nodes = obj.nodes.map(function(layer) {
@@ -1709,7 +1799,7 @@ Universe.prototype._logic = function() {
     }
     player.bestTime = this._cycle;
     team.best.splice(i, 0, player);
-    if (team.best.length > 5) {
+    if (team.best.length > team.bestSize) {
       team.best.pop();
     }
   }.bind(this));

@@ -262,7 +262,7 @@ Universe.prototype._logic = function() {
     }
     player.bestTime = this._cycle;
     team.best.splice(i, 0, player);
-    if (team.best.length > 5) {
+    if (team.best.length > team.bestSize) {
       team.best.pop();
     }
   }.bind(this));

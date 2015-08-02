@@ -10,10 +10,10 @@ var ctx = canvas.getContext('2d');
 var universe = new Universe(ctx, map);
 
 // Add teams
-universe.addTeam("Team HardMax", One, 30, 5, 2000, 0.1, 0.1);
+universe.addTeam("Team Less", Less, 20, 8, 5000, 1, 0);
+universe.addTeam("Team HardMax", One, 20, 8, 5000, 0.1, 0.1);
 //universe.addTeam("Team Sigmoid", Two, 20, 5, 2000, 0.1, 0.1);
-universe.addTeam("Team Neato", Neato, 30, 5, 2000, 0.1, 0.1);
-//universe.addTeam("Team Less", Less, 20, 5, 2000, 1, 0);
+universe.addTeam("Team Neato", Neato, 20, 8, 5000, 0, 0.1);
 
 // Add random resource
 for (i = 0; i < 40; i++) {
@@ -41,16 +41,16 @@ universe.onLogic = function() {
     html += "<hr>";
     html += '<div id="teams">';
 
-    universe.getTeams().forEach(function(team, index) {
+    universe.getTeams().forEach(function(team, teamIndex) {
       html += '<div class="team">';
       html += '<div>' + team.name + '</div>';
       html += "<hr>";
-      team.best.forEach(function(player) {
-        html += '<div>S: ' + player.score + '; K: ' + player.kills +'; ID: ' + player.id + '</div>';
+      team.best.forEach(function(player, playerIndex) {
+        html += '<div data-best="true" data-team="' + teamIndex + '" data-index="' + playerIndex + '">S: ' + player.score + '; K: ' + player.kills +'; ID: ' + player.id + '</div>';
       });
       html += "<hr>";
-      team.players.forEach(function(player) {
-        html += '<div>S: ' + player.score + '; K: ' + player.kills +'; ID: ' +player.id + '</div>';
+      team.players.forEach(function(player, playerIndex) {
+        html += '<div data-team="' + teamIndex + '" data-index="' + playerIndex + '">S: ' + player.score + '; K: ' + player.kills +'; ID: ' +player.id + '</div>';
       });
       html += "</div>";
     });
@@ -124,6 +124,32 @@ function resize() {
   canvas.width = rect.width;
   canvas.height = window.innerHeight;
 }
+
+var sigmaGraph = new sigma({
+  graph: graph,
+  container: 'graph',
+  settings: {
+    defaultNodeColor: '#FF0033',
+    edgeColor: '#666666'
+  }
+});
+
+document.getElementById('stats').addEventListener('click', function(event) {
+  var target = event.target;
+  var team = target.dataset.team;
+  var index = target.dataset.index;
+  var best = target.dataset.best;
+
+  if (typeof team !== 'undefined' && typeof index !== 'undefined') {
+    var team = universe.getTeams()[team];
+    var player = best ? team.best[index] : team.players[index];
+    sigmaGraph.graph.clear();
+    if (player.brain.toGraph) {
+      sigmaGraph.graph.read(player.brain.toGraph());
+    }
+    sigmaGraph.refresh();
+  }
+});
 
 // Boot
 

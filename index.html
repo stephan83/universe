@@ -3,6 +3,9 @@
 <head>
   <title>Universe</title>
   <style type="text/css">
+    html {
+      height: 100%;
+    }
     body {
       margin: 0;
       background: #111;
@@ -10,13 +13,25 @@
       display: flex;
       flex-direction: row;
       font-size: 12px;
+      height: 100%;
     }
-    #stats {
+    #left {
+      display: flex;
+      flex-direction: column;
       background: #eee;
       color: #000;
       flex: 1;
-      padding: 4px 10px;
       max-width: 450px;
+      height: 100%;
+    }
+    #stats {
+      padding: 4px 10px;
+      flex: 1;
+      overflow: auto;
+    }
+    #graph {
+      flex: 1;
+      height: 200px;
     }
     #teams {
       display: flex;
@@ -43,7 +58,10 @@
   </style>
 </head>
 <body>
-  <div id="stats">Stats</div>
+  <div id="left">
+    <div id="stats">Stats</div>
+    <div id="graph"></div>
+  </div>
   <div id="controls">
     <div>
       <label>Zoom</label>
@@ -56,6 +74,7 @@
     </div>
   </div>
   <canvas id="universe"></canvas>
+  <script type="text/javascript" src="js/sigma.min.js"></script>
   <script type="text/javascript" src="js/bundle.js"></script>
 </body>
 </html>
