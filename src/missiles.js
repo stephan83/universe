@@ -66,9 +66,9 @@ Missiles.prototype.loop = function() {
           player.resource -= missile.energy;
 
           if (missile.emitter.team === player.team) {
-            missile.emitter.score = Math.max(0, missile.emitter.score - missile.energy * 100);
+            missile.emitter.score = Math.max(0, missile.emitter.score - missile.energy);
           } else {
-            missile.emitter.score += missile.energy * 100;
+            missile.emitter.score += missile.energy;
             if (player.resource < 1) {
               missile.emitter.kills++;
             }

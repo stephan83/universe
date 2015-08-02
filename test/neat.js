@@ -13,11 +13,12 @@ describe('Neat', function() {
       var n = new Neat(2, 7);
       var from = getNodeId(n, 0, 0);
       var to = getNodeId(n, 1, 4);
+      n.addConnection(from, to, 1);
       assert.equal(n.addNode(from, to, 1, 2), true);
       var nodeId = getNodeId(n, 1, 0);
       assert.equal(n._nodeGenes.length, 3);
       assert.equal(n._nodeGenes[1].length, 1);
-      assert.equal(n._connGenes.length, 16);
+      assert.equal(n._connGenes.length, 3);
       assert.equal(n.findConnection(from, nodeId).enabled, true);
       assert.equal(n.findConnection(from, nodeId).weight, 1);
       assert.equal(n.findConnection(nodeId, to).enabled, true);
@@ -29,14 +30,16 @@ describe('Neat', function() {
       var n = new Neat(2, 7);
       var from = getNodeId(n, 0, 0);
       var to = getNodeId(n, 1, 4);
+      n.addConnection(from, to, 1);
       n.addNode(from, to, 1, 1);
       from = getNodeId(n, 0, 1);
       to = getNodeId(n, 2, 0);
+      n.addConnection(from, to, 1);
       n.addNode(from, to, 3, 0);
       var nodeId = getNodeId(n, 1, 1);
       assert.equal(n._nodeGenes.length, 3);
       assert.equal(n._nodeGenes[1].length, 2);
-      assert.equal(n._connGenes.length, 18);
+      assert.equal(n._connGenes.length, 6);
       assert.equal(n.findConnection(from, nodeId).enabled, true);
       assert.equal(n.findConnection(from, nodeId).weight, 3);
       assert.equal(n.findConnection(nodeId, to).enabled, true);
@@ -48,13 +51,14 @@ describe('Neat', function() {
       var n = new Neat(2, 7);
       var from = getNodeId(n, 0, 0);
       var to = getNodeId(n, 1, 4);
+      n.addConnection(from, to, 1);
       n.addNode(from, to, 1, 1);
       to = getNodeId(n, 1, 0);
       n.addNode(from, to, -1, 0);
       var nodeId = getNodeId(n, 1, 0);
       assert.equal(n._nodeGenes.length, 4);
       assert.equal(n._nodeGenes[1].length, 1);
-      assert.equal(n._connGenes.length, 18);
+      assert.equal(n._connGenes.length, 5);
       assert.equal(n.findConnection(from, nodeId).enabled, true);
       assert.equal(n.findConnection(from, nodeId).weight, -1);
       assert.equal(n.findConnection(nodeId, to).enabled, true);
@@ -70,6 +74,7 @@ describe('Neat', function() {
       var n = new Neat(4, 2);
       var input = getNodeId(n, 0, 2);
       var output = getNodeId(n, 1, 1);
+      n.addConnection(input, output, 1);
       n.findConnection(input, output).enabled = true;
       assert.equal(n.addConnection(input, output, 1), false);
     });
@@ -78,6 +83,7 @@ describe('Neat', function() {
       var n = new Neat(2, 7);
       var input = getNodeId(n, 0, 0);
       var output = getNodeId(n, 1, 5);
+      n.addConnection(input, output, 1);
       n.findConnection(input, output).enabled = false;
       assert.equal(n.addConnection(input, output, 1), true);
       assert.equal(n.findConnection(input, output).enabled, true);
@@ -99,9 +105,6 @@ describe('Neat', function() {
 
     it('should add a connection if no connection exists', function () {
       var n = new Neat(2, 7);
-      var from = getNodeId(n, 0, 0);
-      var to = getNodeId(n, 1, 4);
-      n.addNode(from, to, 1, 1);
       var input = getNodeId(n, 0, 1);
       var output = getNodeId(n, 1, 0);
       assert.equal(n.addConnection(input, output, -1), true);
@@ -115,45 +118,27 @@ describe('Neat', function() {
 
     it('should work even without hidden nodes', function () {
       var n = new Neat(2, 3);
-      var con = n.findConnection(getNodeId(n, 0, 0), getNodeId(n, 1, 0));
-      con.enabled = true;
-      con.weight = 1;
-      con = n.findConnection(getNodeId(n, 0, 1), getNodeId(n, 1, 0));
-      con.enabled = true;
-      con.weight = -1;
-      con = n.findConnection(getNodeId(n, 0, 0), getNodeId(n, 1, 1));
-      con.enabled = true;
-      con.weight = -1;
-      con = n.findConnection(getNodeId(n, 0, 1), getNodeId(n, 1, 1));
+      n.addConnection(getNodeId(n, 0, 0), getNodeId(n, 1, 0), 1);
+      n.addConnection(getNodeId(n, 0, 1), getNodeId(n, 1, 0), -1);
+      n.addConnection(getNodeId(n, 0, 0), getNodeId(n, 1, 1), -1);
+      n.addConnection(getNodeId(n, 0, 1), getNodeId(n, 1, 1), 1);
+      n.addConnection(getNodeId(n, 0, 0), getNodeId(n, 1, 2), -10);
+      n.addConnection(getNodeId(n, 0, 1), getNodeId(n, 1, 2), -2);
+      var con = n.findConnection(getNodeId(n, 0, 1), getNodeId(n, 1, 1));
       con.enabled = false;
-      con = n.findConnection(getNodeId(n, 0, 0), getNodeId(n, 1, 2));
-      con.enabled = true;
-      con.weight = -10;
-      con = n.findConnection(getNodeId(n, 0, 1), getNodeId(n, 1, 2));
-      con.enabled = true;
-      con.weight = -2;
       assert.deepEqual(n.process([-1,4]), [0, 1, 2]);
     });
 
     it('should work with hidden nodes', function () {
       var n = new Neat(2, 3);
-      var con = n.findConnection(getNodeId(n, 0, 0), getNodeId(n, 1, 0));
-      con.enabled = true;
-      con.weight = 1;
-      con = n.findConnection(getNodeId(n, 0, 1), getNodeId(n, 1, 0));
-      con.enabled = true;
-      con.weight = -1;
-      con = n.findConnection(getNodeId(n, 0, 0), getNodeId(n, 1, 1));
-      con.enabled = true;
-      con.weight = -1;
-      con = n.findConnection(getNodeId(n, 0, 1), getNodeId(n, 1, 1));
+      n.addConnection(getNodeId(n, 0, 0), getNodeId(n, 1, 0), 1);
+      n.addConnection(getNodeId(n, 0, 1), getNodeId(n, 1, 0), -1);
+      n.addConnection(getNodeId(n, 0, 0), getNodeId(n, 1, 1), -1);
+      n.addConnection(getNodeId(n, 0, 1), getNodeId(n, 1, 1), 1);
+      n.addConnection(getNodeId(n, 0, 0), getNodeId(n, 1, 2), -10);
+      n.addConnection(getNodeId(n, 0, 1), getNodeId(n, 1, 2), -2);
+      var con = n.findConnection(getNodeId(n, 0, 1), getNodeId(n, 1, 1));
       con.enabled = false;
-      con = n.findConnection(getNodeId(n, 0, 0), getNodeId(n, 1, 2));
-      con.enabled = true;
-      con.weight = -10;
-      con = n.findConnection(getNodeId(n, 0, 1), getNodeId(n, 1, 2));
-      con.enabled = true;
-      con.weight = -2;
       n.addNode(getNodeId(n, 0, 1), getNodeId(n, 1, 2), 2, 1);
       assert.deepEqual(n.process([-1,4]), [0, 1, 18]);
     });
