@@ -275,7 +275,7 @@ Universe.prototype._logic = function() {
         var brain1 = team.best[Math.floor(Math.random() * team.best.length)].brain;
         do {
           var brain2 = team.best[Math.floor(Math.random() * team.best.length)].brain;
-        } while (brain1 !== brain2)
+        } while (brain1 === brain2)
         if (Math.random() < team.mateRate) {
           brain = brain1.mate(brain2);
         } else {

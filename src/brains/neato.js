@@ -83,8 +83,14 @@ Neato.prototype.mutate = function() {
 };
 
 Neato.prototype.mate = function(partner) {
-  // TODO crossover
-  return new Neato(this._network.mutate());
+  var mutant = Neat.mate(this._network, partner._network);
+  if (mutant) {
+    return new Neato(mutant.mutate());
+  }
+  if (Math.random() < 0.5) {
+    return new Neato(this._network.mutate());
+  }
+  return new Neato(partner._network.mutate());
 };
 
 Neato.prototype.toGraph = function() {

@@ -14,7 +14,7 @@ describe('Neat', function() {
       var from = getNodeId(n, 0, 0);
       var to = getNodeId(n, 1, 4);
       n.addConnection(from, to, 1);
-      assert.equal(n.addNode(from, to, 1, 2), true);
+      assert.equal(n.addNode(from, to, Neat.NODE_HARDMAX, 1, 2), true);
       var nodeId = getNodeId(n, 1, 0);
       assert.equal(n._nodeGenes.length, 3);
       assert.equal(n._nodeGenes[1].length, 1);
@@ -31,11 +31,11 @@ describe('Neat', function() {
       var from = getNodeId(n, 0, 0);
       var to = getNodeId(n, 1, 4);
       n.addConnection(from, to, 1);
-      n.addNode(from, to, 1, 1);
+      n.addNode(from, to, Neat.NODE_HARDMAX, 1, 1);
       from = getNodeId(n, 0, 1);
       to = getNodeId(n, 2, 0);
       n.addConnection(from, to, 1);
-      n.addNode(from, to, 3, 0);
+      n.addNode(from, to, Neat.NODE_HARDMAX, 3, 0);
       var nodeId = getNodeId(n, 1, 1);
       assert.equal(n._nodeGenes.length, 3);
       assert.equal(n._nodeGenes[1].length, 2);
@@ -52,9 +52,9 @@ describe('Neat', function() {
       var from = getNodeId(n, 0, 0);
       var to = getNodeId(n, 1, 4);
       n.addConnection(from, to, 1);
-      n.addNode(from, to, 1, 1);
+      n.addNode(from, to, Neat.NODE_HARDMAX, 1, 1);
       to = getNodeId(n, 1, 0);
-      n.addNode(from, to, -1, 0);
+      n.addNode(from, to, Neat.NODE_HARDMAX, -1, 0);
       var nodeId = getNodeId(n, 1, 0);
       assert.equal(n._nodeGenes.length, 4);
       assert.equal(n._nodeGenes[1].length, 1);
@@ -139,7 +139,7 @@ describe('Neat', function() {
       n.addConnection(getNodeId(n, 0, 1), getNodeId(n, 1, 2), -2);
       var con = n.findConnection(getNodeId(n, 0, 1), getNodeId(n, 1, 1));
       con.enabled = false;
-      n.addNode(getNodeId(n, 0, 1), getNodeId(n, 1, 2), 2, 1);
+      n.addNode(getNodeId(n, 0, 1), getNodeId(n, 1, 2), Neat.NODE_HARDMAX, 2, 1);
       assert.deepEqual(n.process([-1,4]), [0, 1, 18]);
     });
 
