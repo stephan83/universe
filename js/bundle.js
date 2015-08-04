@@ -84,16 +84,34 @@ Less.prototype.mate = function() {
 
 module.exports = Less;
 
-},{"../universe":14}],2:[function(require,module,exports){
+},{"../universe":16}],2:[function(require,module,exports){
 var Neat = require('../neat');
 var Universe = require('../universe');
 
 function Neato(network) {
-  this._network = network || new Neat(42, 21).mutate();
+  if (!network) {
+    network = new Neat(42, 20).mutate();
+    /*for (var i = 0; i < 8; i++) {
+      network.addConnection(
+        network._nodeGenes[0][i][0],
+        network._nodeGenes[1][i][0],
+        1
+      );
+    }
+    for (; i < 16; i++) {
+      network.addConnection(
+        network._nodeGenes[0][i][0],
+        network._nodeGenes[1][i][0],
+        0.5
+      );
+    }
+    */
+  }
+  this._network = network;
   this._inputs = new Float32Array([
     0, 0, 0, 0, 0, 0, 0, 0, // Resources sensors
-    0, 0, 0, 0, 0, 0, 0, 0, // Allies sensors
     0, 0, 0, 0, 0, 0, 0, 0, // Enemies sensors
+    0, 0, 0, 0, 0, 0, 0, 0, // Allies sensors
     0, 0, 0, 0, 0, 0, 0, 0, // Missiles sensors
     0, 0, 0, 0,             // Wall sensors
     0,                      // Resource
@@ -111,10 +129,10 @@ Neato.prototype.loop = function(sensors) {
     inputs[j++] = sensors.resources[i] / 25;
   }
   for (i = 0; i < 8; i++) {
-    inputs[j++] = sensors.allies[i] / 25;
+    inputs[j++] = sensors.enemies[i] / 25;
   }
   for (i = 0; i < 8; i++) {
-    inputs[j++] = sensors.enemies[i] / 25;
+    inputs[j++] = sensors.allies[i] / 25;
   }
   for (i = 0; i < 8; i++) {
     inputs[j++] = sensors.missiles[i] / 25;
@@ -141,13 +159,18 @@ Neato.prototype.loop = function(sensors) {
   var maxValue = 0;
   var maxIndex;
 
-  for (var i = 0; i < 17; i++) {
+  for (var i = 0; i < 16; i++) {
     var value = outputs[i];
 
     if (value > maxValue) {
       maxValue = value;
       maxIndex = i;
     }
+  }
+
+  // No output over 0.5, do nothing
+  if (maxValue < 0.5) {
+    return;
   }
 
   // Output 0-7 => Move
@@ -161,16 +184,14 @@ Neato.prototype.loop = function(sensors) {
   if (maxIndex < 16) {
     return Universe.fireCommand(maxIndex - 8);
   }
-
-  // If max index is 17, do nothing
 };
 
 Neato.prototype.mutate = function() {
   return new Neato(this._network.mutate());
 };
 
-Neato.prototype.mate = function(partner) {
-  var mutant = Neat.mate(this._network, partner._network);
+Neato.prototype.mate = function(partner, score1, score2) {
+  var mutant = Neat.mate(this._network, partner._network, score1, score2);
   if (mutant) {
     return new Neato(mutant.mutate());
   }
@@ -186,7 +207,7 @@ Neato.prototype.toGraph = function() {
 
 module.exports = Neato;
 
-},{"../neat":10,"../universe":14}],3:[function(require,module,exports){
+},{"../neat":12,"../universe":16}],3:[function(require,module,exports){
 // Simple feed forward brain
 
 var FeedForward = require('../feed_forward');
@@ -279,7 +300,75 @@ One.prototype.mate = function(partner) {
 
 module.exports = One;
 
-},{"../feed_forward":5,"../universe":14}],4:[function(require,module,exports){
+},{"../feed_forward":7,"../universe":16}],4:[function(require,module,exports){
+var Decidor = require('../decidor');
+var Universe = require('../universe');
+
+function Three(decidor) {
+  this._decidor = decidor || new Decidor(38, 17);
+  this._prevScore = null;
+  this._prevResource = null;
+};
+
+Three.prototype.loop = function(sensors) {
+  var inputs = new Array(38);
+  var j = 0;
+
+  for (var i = 0; i < 8; i++) {
+    inputs[j++] = sensors.resources[i] / 25;
+  }
+  for (i = 0; i < 8; i++) {
+    inputs[j++] = sensors.allies[i] / 25;
+  }
+  for (i = 0; i < 8; i++) {
+    inputs[j++] = sensors.enemies[i] / 25;
+  }
+  for (i = 0; i < 8; i++) {
+    inputs[j++] = sensors.missiles[i] / 25;
+  }
+  for (i = 0; i < 4; i++) {
+    inputs[j++] = sensors.walls[i] / 25;
+  }
+
+  inputs[j++] = sensors.resource / 100;
+  inputs[j++] = sensors.ammo / 10;
+
+  if (this._prevScore !== null) {
+    var diff1 = (sensors.score - this._prevScore) / 10;
+    var diff2 = (sensors.resource - this._prevResource) / 10;
+  }
+
+  this._prevScore = sensors.score;
+  this._prevResource = sensors.resource;
+
+  var output = this._decidor.process(inputs, diff1 + diff2);
+
+  // Output 0-7 => Move
+
+  if (output < 8) {
+    return Universe.moveCommand(output);
+  }
+
+  // Output 8 -16 => Move
+
+  if (output < 16) {
+    return Universe.fireCommand(output - 8);
+  }
+
+  // If max index is 17, do nothing
+};
+
+Three.prototype.mutate = function() {
+  return new Three(this._decidor.clone());
+};
+
+Three.prototype.mate = function(partner) {
+  return new Three();
+};
+
+module.exports = Three;
+
+},{"../decidor":6,"../universe":16}],5:[function(require,module,exports){
 // Simple feed forward brain
 
 var FeedForward = require('../feed_forward');
@@ -372,7 +461,129 @@ Two.prototype.mate = function(partner) {
 
 module.exports = Two;
 
-},{"../feed_forward":5,"../universe":14}],5:[function(require,module,exports){
+},{"../feed_forward":7,"../universe":16}],6:[function(require,module,exports){
+function Decidor(numInputs, numOutputs, maxNodes, nodes) {
+  this._numInputs = numInputs;
+  this._numOutputs = numOutputs;
+  this._maxNodes = maxNodes || 0xFFFF;
+  this._nodeMap = nodes || {};
+  this._numNodes = 0;
+  this._prevInputs = null;
+  this._prevOutput = null;
+}
+
+Decidor.prototype.process = function(inputs, score) {
+  if (this._prevInputs) {
+    if (score !== 0) {
+      this._promote(this._prevInputs, this._prevOutput, score);
+    }
+  }
+
+  var output = this._decide(inputs);
+
+  if (output < 0) {
+    output = Math.floor(Math.random() * this._numOutputs);
+  }
+
+  this._prevInputs = inputs;
+  this._prevOutput = output;
+
+  return output;
+};
+
+Decidor.prototype.clone = function() {
+  var nodes = {};
+
+  for (var hash in this._nodeMap) {
+    if (this._nodeMap.hasOwnProperty(hash)) {
+      nodes[hash] = this._nodeMap[hash];
+    }
+  }
+
+  return new Decidor(this._numInputs, this._numOutputs, nodes);
+};
+
+Decidor.prototype._decide = function(inputs) {
+  var outputs = [];
+  for (var i = 0; i < this._numOutputs; i++) {
+    outputs.push(0);
+  }
+
+  for (var hash in this._nodeMap) {
+    if (this._nodeMap.hasOwnProperty(hash)) {
+      var node = this._nodeMap[hash];
+      var o = this._unhash(hash);
+      var ins = o.inputs;
+      var out = o.output;
+      for (var i = 0; i < ins.length; i++) {
+        var input = inputs[ins[i]];
+        var weight = node[i];
+        outputs[out] += input * weight;
+      }
+    }
+  }
+
+  var bestValue = 0;
+  var bestIndex = -1;
+
+  for (var i = 0; i < this._numOutputs; i++) {
+    if (outputs[i] > bestValue) {
+      bestValue = outputs[i];
+      bestIndex = i;
+    }
+  }
+
+  if (bestIndex > -1 && 1 / (1 - Math.exp(-bestValue)) >= 0.5) {
+    return bestIndex;
+  }
+
+  return -1;
+};
+
+Decidor.prototype._addNode = function(inputs, output, weight) {
+  var node = [];
+  for (var i = 0; i < inputs.length; i++) {
+    node.push(weight);
+  }
+  this._nodeMap[this._hash(inputs, output)] = node;
+  this._numNodes++;
+};
+
+Decidor.prototype._findNode = function(inputs, output) {
+  return this._nodeMap[this._hash(inputs, output)];
+};
+
+Decidor.prototype._promote = function(inputs, output, score) {
+  var node = this._findNode(inputs, output);
+  if (node) {
+    for (var i = 0; i < node.length; i++) {
+      node[i] += score;
+    }
+    return;
+  }
+  this._addNode(inputs, output, score);
+};
+
+Decidor.prototype._hash = function(inputs, output) {
+  var ins = [];
+  inputs.forEach(function(i, index) {
+    if (i > 0) {
+      ins.push(index);
+    }
+  });
+  var hash = ins.join(':');
+  return hash + '->' + output;
+};
+
+Decidor.prototype._unhash = function(hash) {
+  var a = hash.split('->');
+  var b = a[0].split(':');
+  return {inputs: b, output: a[1]};
+};
+
+module.exports = Decidor;
+
+},{}],7:[function(require,module,exports){
 // A feed forward network.
 // NOTE: If you need to save the outputs, create a copy of the result because
 // the returned subarray's buffer is reused. This is to avoid allocating
@@ -491,7 +702,7 @@ for (var s in FeedForward.prototype) {
 
 module.exports = FeedForward;
 
-},{}],6:[function(require,module,exports){
+},{}],8:[function(require,module,exports){
 function Frame() {
   this._informationMap = {};
   this._removed = {};
@@ -555,11 +766,12 @@ Frame._unhash = function(hash) {
 
 module.exports = Frame;
 
-},{}],7:[function(require,module,exports){
+},{}],9:[function(require,module,exports){
 var Less = require('./brains/less');
 var map = require('./map');
 var One = require('./brains/one');
 var Two = require('./brains/two');
+var Three = require('./brains/three');
 var Neato = require('./brains/neato');
 var Universe = require('./universe');
 
@@ -568,11 +780,11 @@ var ctx = canvas.getContext('2d');
 var universe = new Universe(ctx, map);
 
 // Add teams
-universe.addTeam("Team Less", Less, 30, 8, 5000, 1, 0);
-//universe.addTeam("Team HardMax", One, 20, 8, 5000, 0.1, 0.1);
+universe.addTeam("Team Less", Less, 30, 8, 10000, 1, 0);
+//universe.addTeam("Team HardMax", One, 30, 8, 10000, 0.1, 0.1);
 //universe.addTeam("Team Sigmoid", Two, 20, 5, 2000, 0.1, 0.1);
-//universe.addTeam("Team Lonely Neato", Neato, 30, 8, 5000, 0, 0);
-universe.addTeam("Team Horny Neato", Neato, 100, 8, 5000, 0, 1);
+//universe.addTeam("Team Three", Three, 30, 8, 10000, 0, 0);
+universe.addTeam("Team Horny Neato", Neato, 30, 8, 10000, 0, 0.75);
 
 // Add random resource
 for (i = 0; i < 40; i++) {
@@ -717,7 +929,7 @@ universe.start();
 
 window.universe = universe;
 
-},{"./brains/less":1,"./brains/neato":2,"./brains/one":3,"./brains/two":4,"./map":8,"./universe":14}],8:[function(require,module,exports){
+},{"./brains/less":1,"./brains/neato":2,"./brains/one":3,"./brains/three":4,"./brains/two":5,"./map":10,"./universe":16}],10:[function(require,module,exports){
 
 module.exports = [
   'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
@@ -826,7 +1038,7 @@ module.exports = [
   'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
 ];
 
-},{}],9:[function(require,module,exports){
+},{}],11:[function(require,module,exports){
 var Frame = require('./frame');
 
 function Missiles(directions, cost, initialEnergy) {
@@ -892,15 +1104,17 @@ Missiles.prototype.loop = function() {
         var player = this._players.getFrame().read(destX, destY);
 
         if (player) {
-          player.resource -= missile.energy;
-
           if (missile.emitter.team === player.team) {
-            missile.emitter.score = Math.max(0, missile.emitter.score - missile.energy);
-          } else {
-            missile.emitter.score += missile.energy;
-            if (player.resource < 1) {
-              missile.emitter.kills++;
-            }
+            var dest = this._frame.read(destX, destY) || [];
+            dest.push(missile);
+            this._frame.write(destX, destY, dest);
+            return;
+          }
+
+          player.resource -= missile.energy;
+          missile.emitter.score += missile.energy;
+          if (player.resource < 1) {
+            missile.emitter.kills++;
           }
 
           if (player.resource < 1) {
@@ -922,7 +1136,7 @@ Missiles.prototype.loop = function() {
 
 module.exports = Missiles;
 
-},{"./frame":6}],10:[function(require,module,exports){
+},{"./frame":8}],12:[function(require,module,exports){
 // Neat with feed forward nodes only
 
 function randomWeight() {
@@ -995,7 +1209,7 @@ Neat.NODE_HARDMAX = 3;
 Neat.prototype.process = function(inputs) {
   var nodeValues = [];
 
-  for (var i = 0; i < this._nodeGenes[0].length; i++) {
+  for (var i = 0; i < this._numInputs; i++) {
     var node = this._nodeGenes[0][i];
     nodeValues[node[0]] = inputs[i];
   }
@@ -1022,14 +1236,14 @@ Neat.prototype.process = function(inputs) {
       if (node[1] === Neat.NODE_HARDMAX) {
         nodeValues[node[0]] = Math.max(0, sum);
       } else {
-        nodeValues[node[0]] = 1 / (1 + Math.exp(-sum));
+        nodeValues[node[0]] = 1 / (1 + Math.exp(-4.9 * sum));
       }
     }
   }
 
   var outputs = [];
 
-  for (i = 0; i < this._nodeGenes[this._nodeGenes.length - 1].length; i++) {
+  for (i = 0; i < this._numOutputs; i++) {
     node = layer[i];
     outputs[i] = nodeValues[node[0]] || 0;
   }
@@ -1059,6 +1273,7 @@ Neat.prototype.addConnection = function(input, output, weight, innovation, disab
       return false;
     }
     existing.enabled = true;
+    existing.weight = weight || randomWeight();
     return true;
   }
 
@@ -1074,22 +1289,22 @@ Neat.prototype.addConnection = function(input, output, weight, innovation, disab
   var conn = {
     input: input,
     output: output,
-    weight: weight,
+    weight: typeof weight === 'undefined' ? randomWeight() : weight,
     enabled: !disabled,
     innovation: typeof innovation === 'undefined' ? innovationCount++ : innovation
   };
 
   this._connGenes.push(conn);
 
-  this._nodeInputs[conn.output] = this._nodeInputs[conn.output] || [];
-  this._nodeInputs[conn.output].push(conn);
   this._nodeOutputs[conn.input] = this._nodeOutputs[conn.input] || [];
   this._nodeOutputs[conn.input].push(conn);
+  this._nodeInputs[conn.output] = this._nodeInputs[conn.output] || [];
+  this._nodeInputs[conn.output].push(conn);
 
   return true;
 };
 
-Neat.prototype.addNode = function(input, output, weight1, weight2, id, innov1, innov2) {
+Neat.prototype.addNode = function(input, output, weight1, weight2, id, innov1, innov2, dis1, dis2) {
   var conn = this.findConnection(input, output);
 
   if (!conn) {
@@ -1117,8 +1332,8 @@ Neat.prototype.addNode = function(input, output, weight1, weight2, id, innov1, i
 
   this._nodeToLayerMap[nodeId] = this._nodeGenes[layerIndex];
   conn.enabled = false;
-  this.addConnection(input, nodeId, weight1, innov1);
-  this.addConnection(nodeId, output, weight2, innov2);
+  this.addConnection(input, nodeId, weight1, innov1, dis1);
+  this.addConnection(nodeId, output, weight2, innov2, dis2);
   this._numNodeGenes++;
 
   return true;
@@ -1143,58 +1358,84 @@ Neat.prototype.clone = function() {
 }
 
 Neat.prototype._randomInputOutput = function() {
-  var len = this._nodeGenes.length - 1;
-  var numOutputs = this._nodeGenes[len].length;
-  var numPrev = 0;
-  var inputPos = Math.floor(Math.random() * (this._numNodeGenes - numOutputs));
-  for (var i = 0; numPrev <= inputPos; i++) {
-    var layer = this._nodeGenes[i];
-    numPrev += layer.length;
-  }
-  var input = layer[Math.floor(Math.random() * layer.length)][0];
+  var inputs = [];
+  var outputs = [];
 
-  var outputPos = numPrev + Math.floor(Math.random() * (this._numNodeGenes - numPrev));
+  this._nodeGenes.slice(0, -1).forEach(function(layer, i) {
+    layer.forEach(function(node) {
+      var id = node[0];
+      inputs.push({
+        layer: i,
+        id: id,
+        numConn: this._nodeOutputs[id] ? this._nodeOutputs[id].length : 0
+      });
+    }.bind(this));
+  }.bind(this));
 
-  for (; numPrev <= outputPos; i++) {
-    layer = this._nodeGenes[i];
-    numPrev += layer.length;
-  }
-  var output = layer[Math.floor(Math.random() * layer.length)][0];
+  inputs.sort(function(a, b) {
+    return (a.numConn - b.numConn) || (Math.random() < 0.5 ? 1 : -1);
+  });
 
-  return [input, output];
+  var inputNode = inputs[0];
+
+  this._nodeGenes.slice(inputNode.layer + 1).forEach(function(layer, i) {
+    layer.forEach(function(node) {
+      var id = node[0];
+      var nodeInputs = this._nodeInputs[id] || [];
+      for (var i = 0; i < nodeInputs.length; i++) {
+        var conn = nodeInputs[i];
+        if (conn.input === inputNode.id && conn.enabled) {
+          return;
+        }
+      }
+      outputs.push({
+        layer: i,
+        id: id,
+        numConn: nodeInputs.length
+      });
+    }.bind(this));
+  }.bind(this));
+
+  outputs.sort(function(a, b) {
+    return (a.numConn - b.numConn) || (Math.random() < 0.5 ? 1 : -1);
+  });
+
+  var outputNode = outputs[0];
+
+  return [inputNode.id, outputNode.id];
 }
 
 Neat.prototype.mutate = function() {
   var clone = this.clone();
 
-  for (var i = 0; i < clone._connGenes.length; i++) {
-    if (clone._connGenes[i].enabled && Math.random() < 0.1) {
-      clone._connGenes[i].weight += randomWeight();
+  if (Math.random() < 0.8) {
+    for (var i = 0; i < clone._connGenes.length; i++) {
+      if (Math.random() < 0.9) {
+        clone._connGenes[i].weight += randomWeight() * 0.5;
+      } else {
+        clone._connGenes[i].weight = randomWeight();
+      }
     }
   }
 
-  if (Math.random() < 0.9 || !this._connGenes.length) {
+  if (Math.random() < 0.5 || !clone._connGenes.length) {
+    var inputOutput = clone._randomInputOutput();
+    var from = inputOutput[0];
+    var to = inputOutput[1];
+    clone.addConnection(from, to, randomWeight());
+  }
+
+  if (Math.random() < 0.3 && clone._connGenes.length) {
     for (i = 0; i < 100; i++) {
-      var inputOutput = this._randomInputOutput();
-      var from = inputOutput[0];
-      var to = inputOutput[1];
-      if (this.findConnection(from, to)) {
-        continue;
-      }
-      clone.addConnection(from, to, randomWeight());
-      break;
-    }
-  } else {
-    for (i = 0; i < 100; i++) {
-      var conn = this._connGenes[Math.floor(Math.random() * this._connGenes.length)];
+      conn = clone._connGenes[Math.floor(Math.random() * clone._connGenes.length)];
       if (!conn.enabled) {
         continue;
       }
-      if (this._nodeInputs[conn.input] &&
-          this._nodeInputs[conn.input].length < 2) {
+      if (clone._nodeInputs[conn.input] &&
+          clone._nodeInputs[conn.input].length < 2) {
         continue;
       }
-      if (this._nodeInputs[conn.output].length < 2) {
+      if (clone._nodeInputs[conn.output].length < 2) {
         continue;
       }
       clone.addNode(conn.input, conn.output, 1, conn.weight);
@@ -1287,13 +1528,40 @@ Neat.unmarshal = function(obj) {
   );
 }
 
-Neat.mate = function(a, b) {
+Neat.mate = function(a, b, fitness1, fitness2) {
   var child = new Neat(a._numInputs, b._numOutputs);
   var disjoint = 0;
   var excess = 0;
   var ai = 0;
   var bi = 0;
   var mem;
+
+  function addGene(gene) {
+    if (!child._nodeToLayerMap[gene.output]) {
+      mem = gene;
+      return;
+    }
+    if (!child._nodeToLayerMap[gene.input]) {
+      if (!mem) {
+        throw new Error('Unexpected gene');
+      }
+      child.addNode(
+        mem.input, gene.output,
+        mem.weight, gene.weight,
+        mem.output,
+        mem.innovation, gene.innovation,
+        mem.enabled ? false : Math.random() < 0.75,
+        gene.enabled ? false : Math.random() < 0.75
+      );
+      mem = null;
+      return;
+    }
+    child.addConnection(
+      gene.input, gene.output,
+      gene.weight, gene.innovation,
+      gene.enabled ? false : Math.random() < 0.75
+    );
+  }
 
   for (var i = 0; true; i++) {
     if (ai < a._connGenes.length) {
@@ -1310,117 +1578,42 @@ Neat.mate = function(a, b) {
       break;
     }
     if (ag && !bg) {
+      if (fitness1 < fitness2) {
+        break;
+      }
       ai++;
       excess++;
-      if (!child._nodeToLayerMap[ag.output]) {
-        mem = ag;
-        continue;
-      }
-      if (!child._nodeToLayerMap[ag.input]) {
-        if (!mem) console.log('WTF')
-        child.addNode(
-          mem.input, ag.output,
-          mem.weight, ag.weight,
-          mem.output,
-          mem.innovation, ag.innovation
-        );
-        continue;
-      }
-      child.addConnection(
-        ag.input, ag.output,
-        ag.weight, ag.innovation
-      );
+      addGene(ag);
       continue;
     }
     if (!ag && bg) {
+      if (fitness2 < fitness1) {
+        break;
+      }
       bi++;
       excess++;
-      if (!child._nodeToLayerMap[bg.output]) {
-        mem = bg;
-        continue;
-      }
-      if (!child._nodeToLayerMap[bg.input]) {
-        if (!mem) console.log('WTF')
-        child.addNode(
-          mem.input, bg.output,
-          mem.weight, bg.weight,
-          mem.output,
-          mem.innovation, bg.innovation
-        );
-        continue;
-      }
-      child.addConnection(
-        bg.input, bg.output,
-        bg.weight, bg.innovation
-      );
+      addGene(bg);
       continue;
     }
     if (ag.innovation === bg.innovation) {
       ai++;
       bi++;
       var g = Math.random() < 0.5 ? ag : bg;
-      if (!child._nodeToLayerMap[g.output]) {
-        mem = g;
-        continue;
-      }
-      if (!child._nodeToLayerMap[g.input]) {
-        if (!mem) console.log('WTF')
-        child.addNode(
-          mem.input, g.output,
-          mem.weight, g.weight,
-          mem.output,
-          mem.innovation, g.innovation
-        );
-        continue;
-      }
-      child.addConnection(
-        g.input, g.output,
-        g.weight, g.innovation
-      );
+      addGene(g);
       continue;
     }
     disjoint++;
     if (ag.innovation < bg.innovation) {
       ai++;
-      if (!child._nodeToLayerMap[ag.output]) {
-        mem = ag;
-        continue;
+      if (fitness1 > fitness2) { 
+        addGene(ag);
       }
-      if (!child._nodeToLayerMap[ag.input]) {
-        if (!mem) console.log('WTF')
-        child.addNode(
-          mem.input, ag.output,
-          mem.weight, ag.weight,
-          mem.output,
-          mem.innovation, ag.innovation
-        );
-        continue;
-      }
-      child.addConnection(
-        ag.input, ag.output,
-        ag.weight, ag.innovation
-      );
       continue;
     }
     bi++;
-    if (!child._nodeToLayerMap[bg.output]) {
-      mem = bg;
-      continue;
+    if (fitness2 > fitness1) { 
+      addGene(bg);
     }
-    if (!child._nodeToLayerMap[bg.input]) {
-      if (!mem) console.log('WTF')
-      child.addNode(
-        mem.input, bg.output,
-        mem.weight, bg.weight,
-        mem.output,
-        mem.innovation, bg.innovation
-      );
-      continue;
-    }
-    child.addConnection(
-      bg.input, bg.output,
-      bg.weight, bg.innovation
-    );
   }
 
   var tolerance = Math.log(child._connGenes.filter(function(g) {
@@ -1440,7 +1633,7 @@ Neat.mate = function(a, b) {
 
 module.exports = Neat;
 
-},{}],11:[function(require,module,exports){
+},{}],13:[function(require,module,exports){
 var Frame = require('./frame');
 
 var DIRECTIONS = [
@@ -1566,8 +1759,8 @@ Players.prototype._loop2 = function(x, y, player) {
   player.score++;
   player.age++;
 
-  if (player.resource < 1 ||
-      player.age >= (1000 + Math.ceil(Math.random() * 10))) {
+  if (player.resource < 1/* ||
+      player.age >= (1000 + Math.ceil(Math.random() * 10))*/) {
     this._frame.remove(x, y);
     return;
   }
@@ -1585,6 +1778,7 @@ Players.prototype._loop2 = function(x, y, player) {
 
   sensors.resource = player.resource;
   sensors.ammo = player.ammo;
+  sensors.score = player.score;
   
   var command = player.brain.loop(sensors);
 
@@ -1602,7 +1796,7 @@ Players.prototype._loop2 = function(x, y, player) {
 
 module.exports = Players;
 
-},{"./frame":6}],12:[function(require,module,exports){
+},{"./frame":8}],14:[function(require,module,exports){
 var Renderer = {};
 
 Renderer.render = function(ctx, frame, viewX, viewY, zoom, colorizer) {
@@ -1642,7 +1836,7 @@ Renderer.map = function(x, y, width, height, viewX, viewY, cellSize) {
 
 module.exports = Renderer;
 
-},{}],13:[function(require,module,exports){
+},{}],15:[function(require,module,exports){
 var Frame = require('./frame');
 
 var DIRECTIONS = [
@@ -1712,7 +1906,7 @@ Resources.prototype._playerLoop = function(x, y, player) {
 
 module.exports = Resources;
 
-},{"./frame":6}],14:[function(require,module,exports){
+},{"./frame":8}],16:[function(require,module,exports){
 var Players = require('./players');
 var Missiles = require('./missiles');
 var Players = require('./players');
@@ -1987,14 +2181,14 @@ Universe.prototype._logic = function() {
       if (Math.random() < team.newRate) {
         var brain = new team.brain();
       } else if (team.best.length > 1) {
-        var brain1 = team.best[Math.floor(Math.random() * team.best.length)].brain;
+        var player1 = team.best[Math.floor(Math.random() * team.best.length)];
         do {
-          var brain2 = team.best[Math.floor(Math.random() * team.best.length)].brain;
-        } while (brain1 === brain2)
+          var player2 = team.best[Math.floor(Math.random() * team.best.length)];
+        } while (player1 === player2)
         if (Math.random() < team.mateRate) {
-          brain = brain1.mate(brain2);
+          brain = player1.brain.mate(player2.brain, player1.score, player2.score);
         } else {
-          brain = brain1.mutate();
+          brain = player1.brain.mutate();
         }
       }
       this._addPlayer(index, brain || new team.brain());
@@ -2041,7 +2235,7 @@ Universe.prototype._addPlayer = function(team, brain) {
 
 module.exports = Universe;
 
-},{"./missiles":9,"./players":11,"./renderer":12,"./resources":13,"./walls":15}],15:[function(require,module,exports){
+},{"./missiles":11,"./players":13,"./renderer":14,"./resources":15,"./walls":17}],17:[function(require,module,exports){
 var Frame = require('./frame');
 
 var DIRECTIONS = [
@@ -2087,7 +2281,7 @@ Walls.prototype._playerLoop = function(x, y, player) {
 
 module.exports = Walls;
 
-},{"./frame":6}]},{},[7])
+},{"./frame":8}]},{},[9])
 
 
 //# sourceMappingURL=bundle.js.map

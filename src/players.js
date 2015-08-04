@@ -123,8 +123,8 @@ Players.prototype._loop2 = function(x, y, player) {
   player.score++;
   player.age++;
 
-  if (player.resource < 1 ||
-      player.age >= (1000 + Math.ceil(Math.random() * 10))) {
+  if (player.resource < 1/* ||
+      player.age >= (1000 + Math.ceil(Math.random() * 10))*/) {
     this._frame.remove(x, y);
     return;
   }
@@ -142,6 +142,7 @@ Players.prototype._loop2 = function(x, y, player) {
 
   sensors.resource = player.resource;
   sensors.ammo = player.ammo;
+  sensors.score = player.score;
   
   var command = player.brain.loop(sensors);
 

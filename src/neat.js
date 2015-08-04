@@ -70,7 +70,7 @@ Neat.NODE_HARDMAX = 3;
 Neat.prototype.process = function(inputs) {
   var nodeValues = [];
 
-  for (var i = 0; i < this._nodeGenes[0].length; i++) {
+  for (var i = 0; i < this._numInputs; i++) {
     var node = this._nodeGenes[0][i];
     nodeValues[node[0]] = inputs[i];
   }
@@ -97,14 +97,14 @@ Neat.prototype.process = function(inputs) {
       if (node[1] === Neat.NODE_HARDMAX) {
         nodeValues[node[0]] = Math.max(0, sum);
       } else {
-        nodeValues[node[0]] = 1 / (1 + Math.exp(-sum));
+        nodeValues[node[0]] = 1 / (1 + Math.exp(-4.9 * sum));
       }
     }
   }
 
   var outputs = [];
 
-  for (i = 0; i < this._nodeGenes[this._nodeGenes.length - 1].length; i++) {
+  for (i = 0; i < this._numOutputs; i++) {
     node = layer[i];
     outputs[i] = nodeValues[node[0]] || 0;
   }
@@ -134,6 +134,7 @@ Neat.prototype.addConnection = function(input, output, weight, innovation, disab
       return false;
     }
     existing.enabled = true;
+    existing.weight = weight || randomWeight();
     return true;
   }
 
@@ -149,22 +150,22 @@ Neat.prototype.addConnection = function(input, output, weight, innovation, disab
   var conn = {
     input: input,
     output: output,
-    weight: weight,
+    weight: typeof weight === 'undefined' ? randomWeight() : weight,
     enabled: !disabled,
     innovation: typeof innovation === 'undefined' ? innovationCount++ : innovation
   };
 
   this._connGenes.push(conn);
 
-  this._nodeInputs[conn.output] = this._nodeInputs[conn.output] || [];
-  this._nodeInputs[conn.output].push(conn);
   this._nodeOutputs[conn.input] = this._nodeOutputs[conn.input] || [];
   this._nodeOutputs[conn.input].push(conn);
+  this._nodeInputs[conn.output] = this._nodeInputs[conn.output] || [];
+  this._nodeInputs[conn.output].push(conn);
 
   return true;
 };
 
-Neat.prototype.addNode = function(input, output, weight1, weight2, id, innov1, innov2) {
+Neat.prototype.addNode = function(input, output, weight1, weight2, id, innov1, innov2, dis1, dis2) {
   var conn = this.findConnection(input, output);
 
   if (!conn) {
@@ -192,8 +193,8 @@ Neat.prototype.addNode = function(input, output, weight1, weight2, id, innov1, i
 
   this._nodeToLayerMap[nodeId] = this._nodeGenes[layerIndex];
   conn.enabled = false;
-  this.addConnection(input, nodeId, weight1, innov1);
-  this.addConnection(nodeId, output, weight2, innov2);
+  this.addConnection(input, nodeId, weight1, innov1, dis1);
+  this.addConnection(nodeId, output, weight2, innov2, dis2);
   this._numNodeGenes++;
 
   return true;
@@ -218,58 +219,84 @@ Neat.prototype.clone = function() {
 }
 
 Neat.prototype._randomInputOutput = function() {
-  var len = this._nodeGenes.length - 1;
-  var numOutputs = this._nodeGenes[len].length;
-  var numPrev = 0;
-  var inputPos = Math.floor(Math.random() * (this._numNodeGenes - numOutputs));
-  for (var i = 0; numPrev <= inputPos; i++) {
-    var layer = this._nodeGenes[i];
-    numPrev += layer.length;
-  }
-  var input = layer[Math.floor(Math.random() * layer.length)][0];
+  var inputs = [];
+  var outputs = [];
 
-  var outputPos = numPrev + Math.floor(Math.random() * (this._numNodeGenes - numPrev));
+  this._nodeGenes.slice(0, -1).forEach(function(layer, i) {
+    layer.forEach(function(node) {
+      var id = node[0];
+      inputs.push({
+        layer: i,
+        id: id,
+        numConn: this._nodeOutputs[id] ? this._nodeOutputs[id].length : 0
+      });
+    }.bind(this));
+  }.bind(this));
 
-  for (; numPrev <= outputPos; i++) {
-    layer = this._nodeGenes[i];
-    numPrev += layer.length;
-  }
-  var output = layer[Math.floor(Math.random() * layer.length)][0];
+  inputs.sort(function(a, b) {
+    return (a.numConn - b.numConn) || (Math.random() < 0.5 ? 1 : -1);
+  });
 
-  return [input, output];
+  var inputNode = inputs[0];
+
+  this._nodeGenes.slice(inputNode.layer + 1).forEach(function(layer, i) {
+    layer.forEach(function(node) {
+      var id = node[0];
+      var nodeInputs = this._nodeInputs[id] || [];
+      for (var i = 0; i < nodeInputs.length; i++) {
+        var conn = nodeInputs[i];
+        if (conn.input === inputNode.id && conn.enabled) {
+          return;
+        }
+      }
+      outputs.push({
+        layer: i,
+        id: id,
+        numConn: nodeInputs.length
+      });
+    }.bind(this));
+  }.bind(this));
+
+  outputs.sort(function(a, b) {
+    return (a.numConn - b.numConn) || (Math.random() < 0.5 ? 1 : -1);
+  });
+
+  var outputNode = outputs[0];
+
+  return [inputNode.id, outputNode.id];
 }
 
 Neat.prototype.mutate = function() {
   var clone = this.clone();
 
-  for (var i = 0; i < clone._connGenes.length; i++) {
-    if (clone._connGenes[i].enabled && Math.random() < 0.1) {
-      clone._connGenes[i].weight += randomWeight();
+  if (Math.random() < 0.8) {
+    for (var i = 0; i < clone._connGenes.length; i++) {
+      if (Math.random() < 0.9) {
+        clone._connGenes[i].weight += randomWeight() * 0.5;
+      } else {
+        clone._connGenes[i].weight = randomWeight();
+      }
     }
   }
 
-  if (Math.random() < 0.9 || !this._connGenes.length) {
+  if (Math.random() < 0.5 || !clone._connGenes.length) {
+    var inputOutput = clone._randomInputOutput();
+    var from = inputOutput[0];
+    var to = inputOutput[1];
+    clone.addConnection(from, to, randomWeight());
+  }
+
+  if (Math.random() < 0.3 && clone._connGenes.length) {
     for (i = 0; i < 100; i++) {
-      var inputOutput = this._randomInputOutput();
-      var from = inputOutput[0];
-      var to = inputOutput[1];
-      if (this.findConnection(from, to)) {
-        continue;
-      }
-      clone.addConnection(from, to, randomWeight());
-      break;
-    }
-  } else {
-    for (i = 0; i < 100; i++) {
-      var conn = this._connGenes[Math.floor(Math.random() * this._connGenes.length)];
+      conn = clone._connGenes[Math.floor(Math.random() * clone._connGenes.length)];
       if (!conn.enabled) {
         continue;
       }
-      if (this._nodeInputs[conn.input] &&
-          this._nodeInputs[conn.input].length < 2) {
+      if (clone._nodeInputs[conn.input] &&
+          clone._nodeInputs[conn.input].length < 2) {
         continue;
       }
-      if (this._nodeInputs[conn.output].length < 2) {
+      if (clone._nodeInputs[conn.output].length < 2) {
         continue;
       }
       clone.addNode(conn.input, conn.output, 1, conn.weight);
@@ -362,13 +389,40 @@ Neat.unmarshal = function(obj) {
   );
 }
 
-Neat.mate = function(a, b) {
+Neat.mate = function(a, b, fitness1, fitness2) {
   var child = new Neat(a._numInputs, b._numOutputs);
   var disjoint = 0;
   var excess = 0;
   var ai = 0;
   var bi = 0;
   var mem;
+
+  function addGene(gene) {
+    if (!child._nodeToLayerMap[gene.output]) {
+      mem = gene;
+      return;
+    }
+    if (!child._nodeToLayerMap[gene.input]) {
+      if (!mem) {
+        throw new Error('Unexpected gene');
+      }
+      child.addNode(
+        mem.input, gene.output,
+        mem.weight, gene.weight,
+        mem.output,
+        mem.innovation, gene.innovation,
+        mem.enabled ? false : Math.random() < 0.75,
+        gene.enabled ? false : Math.random() < 0.75
+      );
+      mem = null;
+      return;
+    }
+    child.addConnection(
+      gene.input, gene.output,
+      gene.weight, gene.innovation,
+      gene.enabled ? false : Math.random() < 0.75
+    );
+  }
 
   for (var i = 0; true; i++) {
     if (ai < a._connGenes.length) {
@@ -385,117 +439,42 @@ Neat.mate = function(a, b) {
       break;
     }
     if (ag && !bg) {
+      if (fitness1 < fitness2) {
+        break;
+      }
       ai++;
       excess++;
-      if (!child._nodeToLayerMap[ag.output]) {
-        mem = ag;
-        continue;
-      }
-      if (!child._nodeToLayerMap[ag.input]) {
-        if (!mem) console.log('WTF')
-        child.addNode(
-          mem.input, ag.output,
-          mem.weight, ag.weight,
-          mem.output,
-          mem.innovation, ag.innovation
-        );
-        continue;
-      }
-      child.addConnection(
-        ag.input, ag.output,
-        ag.weight, ag.innovation
-      );
+      addGene(ag);
       continue;
     }
     if (!ag && bg) {
+      if (fitness2 < fitness1) {
+        break;
+      }
       bi++;
       excess++;
-      if (!child._nodeToLayerMap[bg.output]) {
-        mem = bg;
-        continue;
-      }
-      if (!child._nodeToLayerMap[bg.input]) {
-        if (!mem) console.log('WTF')
-        child.addNode(
-          mem.input, bg.output,
-          mem.weight, bg.weight,
-          mem.output,
-          mem.innovation, bg.innovation
-        );
-        continue;
-      }
-      child.addConnection(
-        bg.input, bg.output,
-        bg.weight, bg.innovation
-      );
+      addGene(bg);
       continue;
     }
     if (ag.innovation === bg.innovation) {
       ai++;
       bi++;
       var g = Math.random() < 0.5 ? ag : bg;
-      if (!child._nodeToLayerMap[g.output]) {
-        mem = g;
-        continue;
-      }
-      if (!child._nodeToLayerMap[g.input]) {
-        if (!mem) console.log('WTF')
-        child.addNode(
-          mem.input, g.output,
-          mem.weight, g.weight,
-          mem.output,
-          mem.innovation, g.innovation
-        );
-        continue;
-      }
-      child.addConnection(
-        g.input, g.output,
-        g.weight, g.innovation
-      );
+      addGene(g);
       continue;
     }
     disjoint++;
     if (ag.innovation < bg.innovation) {
       ai++;
-      if (!child._nodeToLayerMap[ag.output]) {
-        mem = ag;
-        continue;
+      if (fitness1 > fitness2) { 
+        addGene(ag);
       }
-      if (!child._nodeToLayerMap[ag.input]) {
-        if (!mem) console.log('WTF')
-        child.addNode(
-          mem.input, ag.output,
-          mem.weight, ag.weight,
-          mem.output,
-          mem.innovation, ag.innovation
-        );
-        continue;
-      }
-      child.addConnection(
-        ag.input, ag.output,
-        ag.weight, ag.innovation
-      );
       continue;
     }
     bi++;
-    if (!child._nodeToLayerMap[bg.output]) {
-      mem = bg;
-      continue;
+    if (fitness2 > fitness1) { 
+      addGene(bg);
     }
-    if (!child._nodeToLayerMap[bg.input]) {
-      if (!mem) console.log('WTF')
-      child.addNode(
-        mem.input, bg.output,
-        mem.weight, bg.weight,
-        mem.output,
-        mem.innovation, bg.innovation
-      );
-      continue;
-    }
-    child.addConnection(
-      bg.input, bg.output,
-      bg.weight, bg.innovation
-    );
   }
 
   var tolerance = Math.log(child._connGenes.filter(function(g) {

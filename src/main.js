@@ -2,6 +2,7 @@ var Less = require('./brains/less');
 var map = require('./map');
 var One = require('./brains/one');
 var Two = require('./brains/two');
+var Three = require('./brains/three');
 var Neato = require('./brains/neato');
 var Universe = require('./universe');
 
@@ -10,11 +11,11 @@ var ctx = canvas.getContext('2d');
 var universe = new Universe(ctx, map);
 
 // Add teams
-universe.addTeam("Team Less", Less, 30, 8, 5000, 1, 0);
-//universe.addTeam("Team HardMax", One, 20, 8, 5000, 0.1, 0.1);
+universe.addTeam("Team Less", Less, 30, 8, 10000, 1, 0);
+//universe.addTeam("Team HardMax", One, 30, 8, 10000, 0.1, 0.1);
 //universe.addTeam("Team Sigmoid", Two, 20, 5, 2000, 0.1, 0.1);
-//universe.addTeam("Team Lonely Neato", Neato, 30, 8, 5000, 0, 0);
-universe.addTeam("Team Horny Neato", Neato, 100, 8, 5000, 0, 1);
+//universe.addTeam("Team Three", Three, 30, 8, 10000, 0, 0);
+universe.addTeam("Team Horny Neato", Neato, 30, 8, 10000, 0, 0.75);
 
 // Add random resource
 for (i = 0; i < 40; i++) {

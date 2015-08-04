@@ -2,11 +2,29 @@ var Neat = require('../neat');
 var Universe = require('../universe');
 
 function Neato(network) {
-  this._network = network || new Neat(42, 21).mutate();
+  if (!network) {
+    network = new Neat(42, 20).mutate();
+    /*for (var i = 0; i < 8; i++) {
+      network.addConnection(
+        network._nodeGenes[0][i][0],
+        network._nodeGenes[1][i][0],
+        1
+      );
+    }
+    for (; i < 16; i++) {
+      network.addConnection(
+        network._nodeGenes[0][i][0],
+        network._nodeGenes[1][i][0],
+        0.5
+      );
+    }
+    */
+  }
+  this._network = network;
   this._inputs = new Float32Array([
     0, 0, 0, 0, 0, 0, 0, 0, // Resources sensors
-    0, 0, 0, 0, 0, 0, 0, 0, // Allies sensors
     0, 0, 0, 0, 0, 0, 0, 0, // Enemies sensors
+    0, 0, 0, 0, 0, 0, 0, 0, // Allies sensors
     0, 0, 0, 0, 0, 0, 0, 0, // Missiles sensors
     0, 0, 0, 0,             // Wall sensors
     0,                      // Resource
@@ -24,10 +42,10 @@ Neato.prototype.loop = function(sensors) {
     inputs[j++] = sensors.resources[i] / 25;
   }
   for (i = 0; i < 8; i++) {
-    inputs[j++] = sensors.allies[i] / 25;
+    inputs[j++] = sensors.enemies[i] / 25;
   }
   for (i = 0; i < 8; i++) {
-    inputs[j++] = sensors.enemies[i] / 25;
+    inputs[j++] = sensors.allies[i] / 25;
   }
   for (i = 0; i < 8; i++) {
     inputs[j++] = sensors.missiles[i] / 25;
@@ -54,13 +72,18 @@ Neato.prototype.loop = function(sensors) {
   var maxValue = 0;
   var maxIndex;
 
-  for (var i = 0; i < 17; i++) {
+  for (var i = 0; i < 16; i++) {
     var value = outputs[i];
 
     if (value > maxValue) {
       maxValue = value;
       maxIndex = i;
     }
+  }
+
+  // No output over 0.5, do nothing
+  if (maxValue < 0.5) {
+    return;
   }
 
   // Output 0-7 => Move
@@ -74,16 +97,14 @@ Neato.prototype.loop = function(sensors) {
   if (maxIndex < 16) {
     return Universe.fireCommand(maxIndex - 8);
   }
-
-  // If max index is 17, do nothing
 };
 
 Neato.prototype.mutate = function() {
   return new Neato(this._network.mutate());
 };
 
-Neato.prototype.mate = function(partner) {
-  var mutant = Neat.mate(this._network, partner._network);
+Neato.prototype.mate = function(partner, score1, score2) {
+  var mutant = Neat.mate(this._network, partner._network, score1, score2);
   if (mutant) {
     return new Neato(mutant.mutate());
   }

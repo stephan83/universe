@@ -272,14 +272,14 @@ Universe.prototype._logic = function() {
       if (Math.random() < team.newRate) {
         var brain = new team.brain();
       } else if (team.best.length > 1) {
-        var brain1 = team.best[Math.floor(Math.random() * team.best.length)].brain;
+        var player1 = team.best[Math.floor(Math.random() * team.best.length)];
         do {
-          var brain2 = team.best[Math.floor(Math.random() * team.best.length)].brain;
-        } while (brain1 === brain2)
+          var player2 = team.best[Math.floor(Math.random() * team.best.length)];
+        } while (player1 === player2)
         if (Math.random() < team.mateRate) {
-          brain = brain1.mate(brain2);
+          brain = player1.brain.mate(player2.brain, player1.score, player2.score);
         } else {
-          brain = brain1.mutate();
+          brain = player1.brain.mutate();
         }
       }
       this._addPlayer(index, brain || new team.brain());

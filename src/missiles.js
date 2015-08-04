@@ -63,15 +63,17 @@ Missiles.prototype.loop = function() {
         var player = this._players.getFrame().read(destX, destY);
 
         if (player) {
-          player.resource -= missile.energy;
-
           if (missile.emitter.team === player.team) {
-            missile.emitter.score = Math.max(0, missile.emitter.score - missile.energy);
-          } else {
-            missile.emitter.score += missile.energy;
-            if (player.resource < 1) {
-              missile.emitter.kills++;
-            }
+            var dest = this._frame.read(destX, destY) || [];
+            dest.push(missile);
+            this._frame.write(destX, destY, dest);
+            return;
+          }
+
+          player.resource -= missile.energy;
+          missile.emitter.score += missile.energy;
+          if (player.resource < 1) {
+            missile.emitter.kills++;
           }
 
           if (player.resource < 1) {
